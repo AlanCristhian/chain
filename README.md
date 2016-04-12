@@ -169,21 +169,22 @@ To do that you must call the `range` or `enumerate` function first.
 [(0, "a"), (1, "b"), (2, "c")]
 ```
 
-Anther limitation is that you can not iterate over "nested for statements":
+Another limitation is that you can not iterate over "nested for statements":
 
 ```python
 >>> given("abc")(i + j for i in LAST for j in "xyz")(list).end
 SyntaxError: "Multiple for statement are not supported."
 ```
 
-**But**, you can use the `product` function of the `itertools` module.
+**But**, you can use the `product` function.
 
 ```python
->>> from chain import given, LAST
->>> from itertools import product
+>>> from chain import given, LAST, product
 >>> given("abc")(product, "xyz", LAST)(i + j for i, j in LAST)(list).end
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
+
+Here `product` is the same function in `itertools` module.
 
 ### Reuse successive calls object
 
@@ -191,7 +192,8 @@ In case that you want to reutilize a set of operations over an generic object,
 chain provide the `define` function:
 
 ```python
->>> add_2_to_all = define(i*2 for i in LAST)(list).end
+>>> from chain import define, LAST
+>>> add_2_to_all = define(i + 2 for i in LAST)(list).end
 >>> add_2_to_all([2, 3, 5])
-[4, 6, 10]
+[4, 5, 7]
 ```
