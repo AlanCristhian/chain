@@ -103,20 +103,21 @@ do the same with as many arguments as you want:
 
 Maybe you observe that the *lambda function* is executed with object returned
 by the previous call as firs argument. What if you want to pass the returned
-object as second, third or any order? You can use the `LAST` constant:
+object as second, third or any order? You can use the `ANS` constant:
 
 ```python
->>> from chain import given, LAST
->>> given('Three')(lambda a, b, c: a + b + c, 'One', 'Two', LAST).end
+>>> from chain import given, ANS
+>>> given('Three')(lambda a, b, c: a + b + c, 'One', 'Two', ANS).end
 'OneTwoThree'
 ```
 
-The `LAST` constant is like the `ans` key in scientific calculators.
+The `ANS` constant is like the ```ans``` key in scientific calculators. ANS is
+by "last **ANS**wer".
 
-You can use the `LAST` constant as many times as you want:
+You can use the `ANS` constant as many times as you want:
 
 ```python
->>> given('o')(lambda x, y, z: x + y + z, LAST, LAST, LAST).end
+>>> given('o')(lambda x, y, z: x + y + z, ANS, ANS, ANS).end
 'ooo'
 ```
 
@@ -126,7 +127,7 @@ order. So, *keyword arguments* are allowed:
 ```python
 >>> given("a")(lambda x, y, z: x + y + z, y="b", z="c").end
 'abc'
->>> given("z")(lambda x, y, z: x + y + z, x="x", y="y", z=LAST).end
+>>> given("z")(lambda x, y, z: x + y + z, x="x", y="y", z=ANS).end
 'xyz'
 ```
 
@@ -155,7 +156,7 @@ zip function? You can't do this with function composition or piping.
 Succesive function call sovles such problem:
 
 ```python
->>> given("abcd")(zip, LAST, range(4))(list).end
+>>> given("abcd")(zip, ANS, range(4))(list).end
 [('a', 0), ('b', 1), ('c', 2), ('d', 3)]
 ```
 
@@ -165,43 +166,43 @@ If you pass a *generator expression* as first argument, you can consume
 those *generators* successively.
 
 ```python
->>> given([1, 2, 3])(i*2 for i in LAST)(i*3 for i in LAST)(list).end
+>>> given([1, 2, 3])(i*2 for i in ANS)(i*3 for i in ANS)(list).end
 [6, 12, 18]
 ```
 
 The `given` object can only consume those generators that iterate over the
-`LAST` constant:
+`ANS` constant:
 
 ```python
 >>> given("abc")(i for i in [1, 2])(list).end
 ...
-ValueError: Can not iterate over 'list_iterator', 'LAST' constant only.
+ValueError: Can not iterate over 'list_iterator', 'ANS' constant only.
 ```
 
 What if you want to do some like:
 
 ```python
->>> given(10)(i for i in range(LAST))(list).end
+>>> given(10)(i for i in range(ANS))(list).end
 ...
-ValueError: Can not iterate over 'range', 'LAST' constant only.
->>> given("abc")(i for i in enumerate(LAST))(list).end
+ValueError: Can not iterate over 'range', 'ANS' constant only.
+>>> given("abc")(i for i in enumerate(ANS))(list).end
 ...
-ValueError: Can not iterate over 'enumerate', 'LAST' constant only.
+ValueError: Can not iterate over 'enumerate', 'ANS' constant only.
 ```
 
 To do that you must call the `range` or `enumerate` function first.
 
 ```python
->>> given(10)(range)(i for i in LAST)(list).end
+>>> given(10)(range)(i for i in ANS)(list).end
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
->>> given("abc")(enumerate)(i for i in LAST)(list).end
+>>> given("abc")(enumerate)(i for i in ANS)(list).end
 [(0, "a"), (1, "b"), (2, "c")]
 ```
 
 Another limitation is that you can not iterate over "nested for statements":
 
 ```python
->>> given("abc")(i + j for i in LAST for j in "xyz")(list).end
+>>> given("abc")(i + j for i in ANS for j in "xyz")(list).end
 SyntaxError: "Multiple for statement are not supported."
 ```
 
@@ -209,8 +210,8 @@ SyntaxError: "Multiple for statement are not supported."
 
 ```python
 >>> from itertools import product
->>> from chain import given, LAST
->>> given("abc")(product, "xyz", LAST)(i + j for i, j in LAST)(list).end
+>>> from chain import given, ANS
+>>> given("abc")(product, "xyz", ANS)(i + j for i, j in ANS)(list).end
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
 
@@ -220,10 +221,10 @@ In case that you want to reutilize a set of operations over an generic object,
 chain provide the `with_given_obj` function:
 
 ```python
->>> from chain import with_given_obj, LAST
+>>> from chain import with_given_obj, ANS
 >>> add_2_to_even = (with_given_obj
-...     (n for n in LAST if n%2 == 0)
-...     (n + 2 for n in LAST)
+...     (n for n in ANS if n%2 == 0)
+...     (n + 2 for n in ANS)
 ...     (list)
 ... .end)
 >>> add_2_to_even([1, 2, 3, 4, 5, 6])

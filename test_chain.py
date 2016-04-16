@@ -2,7 +2,7 @@ import unittest
 from operator import add
 from itertools import product
 
-from chain import given, LAST, with_given_obj
+from chain import given, ANS, with_given_obj
 
 
 class LetSuite(unittest.TestCase):
@@ -24,11 +24,11 @@ class LetSuite(unittest.TestCase):
         self.assertEqual(result, "abc")
 
     def test_explicit_positinonal_argument(self):
-        result = given(9)(lambda x, y: 0/y, 0, LAST).end
+        result = given(9)(lambda x, y: 0/y, 0, ANS).end
         self.assertEqual(result, 0)
 
     def test_many_explicit_positinonal_argument(self):
-        result = given(9)(lambda x, y, z: x*y*z, LAST, LAST, LAST).end
+        result = given(9)(lambda x, y, z: x*y*z, ANS, ANS, ANS).end
         self.assertEqual(result, 729)
 
     def test_keyword_arguments(self):
@@ -37,28 +37,28 @@ class LetSuite(unittest.TestCase):
 
     def test_explicit_keyword_arguments(self):
         result = (given("z")
-                    (lambda x, y, z: x + y + z, x="x", y="y", z=LAST)
+                    (lambda x, y, z: x + y + z, x="x", y="y", z=ANS)
                  .end)
         self.assertEqual(result, "xyz")
 
     def test_many_explicit_keyword_arguments(self):
         result = (given("z")
-                     (lambda x, y, z: x + y + z, x=LAST, y=LAST, z=LAST)
+                     (lambda x, y, z: x + y + z, x=ANS, y=ANS, z=ANS)
                  .end)
         self.assertEqual(result, "zzz")
 
     def test_positional_and_keyword_arguments(self):
-        result = given(9)(lambda x, y: x + y, LAST, y=LAST).end
+        result = given(9)(lambda x, y: x + y, ANS, y=ANS).end
         self.assertEqual(result, 18)
 
     def test_single_generator(self):
-        result = given([1, 2, 3])(i*2 for i in LAST)(list).end
+        result = given([1, 2, 3])(i*2 for i in ANS)(list).end
         self.assertEqual(result, [2, 4, 6])
 
     def test_two_generators(self):
         result = (given([1, 2, 3])
-                     (i*2 for i in LAST)
-                     (i*3 for i in LAST)
+                     (i*2 for i in ANS)
+                     (i*3 for i in ANS)
                      (list)
                 .end)
         self.assertEqual(result, [6, 12, 18])
@@ -66,20 +66,20 @@ class LetSuite(unittest.TestCase):
     def test_many_for_statements(self):
         message = R"Multiple for statement are not supported."
         with self.assertRaisesRegex(SyntaxError, message):
-            given([1, 2, 3])(i*j for i in range(3) for j in LAST).end
+            given([1, 2, 3])(i*j for i in range(3) for j in ANS).end
 
     def test_product_method(self):
         expected = [(i, j) for i in "abc" for j in range(4)]
         result = (given("abc")
-                     (product, LAST, range(4))
-                     ((i, j) for i, j in LAST)
+                     (product, ANS, range(4))
+                     ((i, j) for i, j in ANS)
                      (list)
                  .end)
         self.assertEqual(result, expected)
 
     def test_LAST_in_second_for_iter_statement(self):
         message = R"Can not iterate over 'list_iterator', " \
-                  "'LAST' constant only."
+                  "'ANS' constant only."
         with self.assertRaisesRegex(ValueError, message):
             given("abc")(i for i in [1, 2]).end
 
@@ -87,7 +87,7 @@ class LetSuite(unittest.TestCase):
         message = "Can not get arguments if you pass a generator "\
                   "at first \(3 given\)\."
         with self.assertRaisesRegex(TypeError, message):
-            given("abc")((i for i in LAST), 1, 2, z=3).end
+            given("abc")((i for i in ANS), 1, 2, z=3).end
 
 
 class LetObjSuite(unittest.TestCase):
@@ -97,8 +97,8 @@ class LetObjSuite(unittest.TestCase):
 
     def test_generator_copy(self):
         operation = (with_given_obj
-            (n for n in LAST if n%2 == 0)
-            (n + 2 for n in LAST)
+            (n for n in ANS if n%2 == 0)
+            (n + 2 for n in ANS)
             (list)
         .end)
         self.assertEqual(operation([1, 2, 3, 4, 5, 6]), [4, 6, 8])

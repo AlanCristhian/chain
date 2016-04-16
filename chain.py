@@ -15,7 +15,7 @@ Implement a data transformer by chain calls like pipes. E.g:
 from types import GeneratorType, FunctionType
 
 
-__all__ = ["given", "LAST", "with_given_obj"]
+__all__ = ["given", "ANS", "with_given_obj"]
 
 
 def _copy_and_replace_dot_zero(generator, iterable):
@@ -37,7 +37,7 @@ class _Last:
         pass
 
 
-LAST = _Last()
+ANS = _Last()
 
 
 def _check_for_iter_count(generator):
@@ -70,13 +70,13 @@ def given(obj):
         nonlocal obj
         if callable(instruction):
             have_previous = False
-            if LAST in args:
+            if ANS in args:
                 have_previous = True
-                args = (obj if a == LAST else a for a in args)
-            if LAST in kwargs.values():
+                args = (obj if a == ANS else a for a in args)
+            if ANS in kwargs.values():
                 have_previous = True
                 for key, value in kwargs.items():
-                    if value == LAST:
+                    if value == ANS:
                         kwargs[key] = obj
             if have_previous:
                 obj = instruction(*args, **kwargs)
@@ -93,7 +93,7 @@ def given(obj):
             if isinstance(dot_zero, _Last):
                 obj = _copy_and_replace_dot_zero(instruction, iter(obj))
             else:
-                message = "Can not iterate over '%s', 'LAST' constant only."
+                message = "Can not iterate over '%s', 'ANS' constant only."
                 raise ValueError(message % dot_zero.__class__.__name__)
         else:
             message = "Expected 'callable' or 'generator'. Got '%s'"
