@@ -107,8 +107,8 @@ object as second, third or any order? You can use the `LAST` constant:
 
 ```python
 >>> from chain import given, LAST
->>> given('tree')(lambda a, b, c: a + ' ' + b + ' ' + c, 'one', 'two', LAST).end
-'one two tree'
+>>> given('Tree')(lambda a, b, c: a + b + c, 'One', 'Two', LAST).end
+'OneTwoTree'
 ```
 
 The `LAST` constant is like the `ans` key in scientific calculators.
@@ -154,7 +154,7 @@ zip function? You can't do this with function composition or piping.
 
 Succesive function call sovles such problem:
 
-```
+```python
 >>> given("abcd")(zip, LAST, range(4))(list).end
 [('a', 0), ('b', 1), ('c', 2), ('d', 3)]
 ```
@@ -217,11 +217,15 @@ SyntaxError: "Multiple for statement are not supported."
 ### Reuse successive calls object
 
 In case that you want to reutilize a set of operations over an generic object,
-chain provide the `define` function:
+chain provide the `with_given_obj` function:
 
 ```python
->>> from chain import define, LAST
->>> add_2_to_all = define(i + 2 for i in LAST)(list).end
->>> add_2_to_all([2, 3, 5])
-[4, 5, 7]
+>>> from chain import with_given_obj, LAST
+>>> add_2_to_even = (with_given_obj
+...     (n for n in LAST if n%2 == 0)
+...     (n + 2 for n in LAST)
+...     (list)
+... .end)
+>>> add_2_to_even([1, 2, 3, 4, 5, 6])
+[4, 6, 8]
 ```
