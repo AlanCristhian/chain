@@ -107,8 +107,8 @@ object as second, third or any order? You can use the `LAST` constant:
 
 ```python
 >>> from chain import given, LAST
->>> given('Tree')(lambda a, b, c: a + b + c, 'One', 'Two', LAST).end
-'OneTwoTree'
+>>> given('Three')(lambda a, b, c: a + b + c, 'One', 'Two', LAST).end
+'OneTwoThree'
 ```
 
 The `LAST` constant is like the `ans` key in scientific calculators.
