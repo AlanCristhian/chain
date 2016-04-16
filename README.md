@@ -130,7 +130,7 @@ order. So, *keyword arguments* are allowed:
 'xyz'
 ```
 
-Another common pattern is pyping via the Unix `|` symbol. At next I show you
+Another common pattern is piping via the Unix `|` symbol. At next I show you
 a [recipe published by Steven D'Aprano.](http://code.activestate.com/recipes/580625-collection-pipeline-in-python/)
 
 ```python
