@@ -11,11 +11,11 @@ Implement a data transformer by chain calls like pipes. E.g:
 24
 """
 
+
 from types import GeneratorType, FunctionType
-from itertools import product
 
 
-__all__ = ["given", "LAST", "define", "product"]
+__all__ = ["given", "LAST", "define"]
 
 
 def _copy_and_replace_dot_zero(generator, iterable):

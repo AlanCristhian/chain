@@ -130,6 +130,35 @@ order. So, *keyword arguments* are allowed:
 'xyz'
 ```
 
+Another common pattern is pyping via the Unix `|` symbol. At next I show you
+a [recipe published by Steven D'Aprano.](http://code.activestate.com/recipes/580625-collection-pipeline-in-python/)
+
+```python
+class Apply:
+    def __init__(self, func):
+        self.func = func
+    def __ror__(self, iterable):
+        return self.func(iterable)
+
+Reverse = Apply(reversed)
+List = Apply(list)
+```
+
+```python
+>>> "abcd" | Reverse | List
+['d', 'c', 'b', 'a']
+```
+
+But, what if you want to use a function that take more than one argument like
+zip function? You can't do this with function composition or piping.
+
+Succesive function call sovles such problem:
+
+```
+>>> given("abcd")(zip, LAST, range(4))(list).end
+[('a', 0), ('b', 1), ('c', 2), ('d', 3)]
+```
+
 ### Successive generator consumption
 
 If you pass a *generator expression* as first argument, you can consume
@@ -176,15 +205,14 @@ Another limitation is that you can not iterate over "nested for statements":
 SyntaxError: "Multiple for statement are not supported."
 ```
 
-**But**, you can use the `product` function.
+**But**, you can use the `product` function of the `itertools` module.
 
 ```python
->>> from chain import given, LAST, product
+>>> from itertools import product
+>>> from chain import given, LAST
 >>> given("abc")(product, "xyz", LAST)(i + j for i, j in LAST)(list).end
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
-
-Here `product` is the same function in `itertools` module.
 
 ### Reuse successive calls object
 

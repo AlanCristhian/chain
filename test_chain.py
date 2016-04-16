@@ -1,7 +1,8 @@
 import unittest
 from operator import add
+from itertools import product
 
-from chain import given, LAST, define, product
+from chain import given, LAST, define
 
 
 class LetSuite(unittest.TestCase):
@@ -77,7 +78,7 @@ class LetSuite(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_LAST_in_second_for_iter_statement(self):
-        message = R"Can not iterate over 'list_iterator', "
+        message = R"Can not iterate over 'list_iterator', " \
                   "'LAST' constant only."
         with self.assertRaisesRegex(ValueError, message):
             given("abc")(i for i in [1, 2]).end
