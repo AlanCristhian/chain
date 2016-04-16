@@ -15,7 +15,7 @@ Implement a data transformer by chain calls like pipes. E.g:
 from types import GeneratorType, FunctionType
 
 
-__all__ = ["given", "LAST", "define"]
+__all__ = ["given", "LAST", "with_given_obj"]
 
 
 def _copy_and_replace_dot_zero(generator, iterable):
@@ -118,7 +118,7 @@ def _function(stack):
     return function
 
 
-def define(instruction, *args, **kwargs):
+def with_given_obj(instruction, *args, **kwargs):
     """
     Define a function by successive calls pattern.
     """

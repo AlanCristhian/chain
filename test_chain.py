@@ -2,7 +2,7 @@ import unittest
 from operator import add
 from itertools import product
 
-from chain import given, LAST, define
+from chain import given, LAST, with_given_obj
 
 
 class LetSuite(unittest.TestCase):
@@ -92,13 +92,17 @@ class LetSuite(unittest.TestCase):
 
 class LetObjSuite(unittest.TestCase):
     def test_functions(self):
-        operation = define(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
+        operation = with_given_obj(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
         self.assertEqual(operation(1), 21)
 
     def test_generator_copy(self):
-        operation = define(i*2 for i in LAST)(i*3 for i in LAST)(list).end
-        self.assertEqual(operation([1, 2, 3]), [6, 12, 18])
-        self.assertEqual(operation([5, 6, 7]), [30, 36, 42])
+        operation = (with_given_obj
+            (n for n in LAST if n%2 == 0)
+            (n + 2 for n in LAST)
+            (list)
+        .end)
+        self.assertEqual(operation([1, 2, 3, 4, 5, 6]), [4, 6, 8])
+        self.assertEqual(operation([7, 8, 9, 10, 11, 12]), [10, 12, 14])
 
 
 if __name__ == '__main__':
