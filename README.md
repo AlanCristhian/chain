@@ -112,7 +112,7 @@ object as second, third or any order? You can use the `ANS` constant:
 ```
 
 The `ANS` constant is like the ```ans``` key in scientific calculators. ANS is
-by "last **ANS**wer".
+by "last **ans**wer".
 
 You can use the `ANS` constant as many times as you want:
 
@@ -213,20 +213,4 @@ SyntaxError: "Multiple for statement are not supported."
 >>> from chain import given, ANS
 >>> given("abc")(product, "xyz", ANS)(i + j for i, j in ANS)(list).end
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
-```
-
-### Reuse successive calls object
-
-In case that you want to reutilize a set of operations over an generic object,
-chain provide the `with_given_obj` function:
-
-```python
->>> from chain import with_given_obj, ANS
->>> add_2_to_even = (with_given_obj
-...     (n for n in ANS if n%2 == 0)
-...     (n + 2 for n in ANS)
-...     (list)
-... .end)
->>> add_2_to_even([1, 2, 3, 4, 5, 6])
-[4, 6, 8]
 ```

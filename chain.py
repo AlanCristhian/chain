@@ -15,10 +15,10 @@ Implement a data transformer by chain calls like pipes. E.g:
 from types import GeneratorType, FunctionType
 
 
-__all__ = ["given", "ANS", "with_given_obj"]
+__all__ = ["given", "ANS"]
 
 
-def _copy_and_replace_dot_zero(generator, iterable):
+def _replace_dot_zero(generator, iterable):
     # Return a copy of the `generator` argument and replace
     # their "dot zero" constant with the `iterable` object.
     return FunctionType(
@@ -28,7 +28,7 @@ def _copy_and_replace_dot_zero(generator, iterable):
     )(**{**generator.gi_frame.f_locals, ".0": iterable})
 
 
-class _Last:
+class _LastAnswer:
     # Implement the minimun protocol to have an iterable object.
     def __iter__(self):
         return self
@@ -37,7 +37,7 @@ class _Last:
         pass
 
 
-ANS = _Last()
+ANS = _LastAnswer()
 
 
 def _check_for_iter_count(generator):
@@ -90,8 +90,8 @@ def given(obj):
                 raise TypeError(message % count)
             _check_for_iter_count(instruction)
             dot_zero = instruction.gi_frame.f_locals[".0"]
-            if isinstance(dot_zero, _Last):
-                obj = _copy_and_replace_dot_zero(instruction, iter(obj))
+            if isinstance(dot_zero, _LastAnswer):
+                obj = _replace_dot_zero(instruction, iter(obj))
             else:
                 message = "Can not iterate over '%s', 'ANS' constant only."
                 raise ValueError(message % dot_zero.__class__.__name__)
@@ -101,35 +101,4 @@ def given(obj):
         # Store accumaled operations result in .end property
         link.end = obj
         return link
-    return link
-
-
-def _function(stack):
-    # Create a function that execute each instruction
-    # in the `stack` with the given argument `obj`.
-    def function(obj):
-        """
-        Execute each instruction in the chain.
-        """
-        operation = given(obj)
-        for instruction, args, kwargs in stack:
-            operation(instruction, *args, **kwargs)
-        return operation.end
-    return function
-
-
-def with_given_obj(instruction, *args, **kwargs):
-    """
-    Define a function by successive calls pattern.
-    """
-    stack = []
-    append = stack.append
-    append((instruction, args, kwargs))
-    def link(instruction, *args, **kwargs):
-        """
-        Add operations to the stack of instructions.
-        """
-        append((instruction, args, kwargs))
-        return link
-    link.end = _function(stack)
     return link

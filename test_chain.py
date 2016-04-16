@@ -2,10 +2,10 @@ import unittest
 from operator import add
 from itertools import product
 
-from chain import given, ANS, with_given_obj
+from chain import given, ANS
 
 
-class LetSuite(unittest.TestCase):
+class GivenSuite(unittest.TestCase):
     def test_first_argument(self):
         message = R"Expected 'callable' or 'generator'. Got 'int'"
         with self.assertRaisesRegex(TypeError, message):
@@ -36,15 +36,11 @@ class LetSuite(unittest.TestCase):
         self.assertEqual(result, "abc")
 
     def test_explicit_keyword_arguments(self):
-        result = (given("z")
-                    (lambda x, y, z: x + y + z, x="x", y="y", z=ANS)
-                 .end)
+        result = given("z")(lambda x, y, z: x + y + z, x="x", y="y", z=ANS).end
         self.assertEqual(result, "xyz")
 
     def test_many_explicit_keyword_arguments(self):
-        result = (given("z")
-                     (lambda x, y, z: x + y + z, x=ANS, y=ANS, z=ANS)
-                 .end)
+        result = given("z")(lambda x, y, z: x + y + z, x=ANS, y=ANS, z=ANS).end
         self.assertEqual(result, "zzz")
 
     def test_positional_and_keyword_arguments(self):
@@ -56,11 +52,7 @@ class LetSuite(unittest.TestCase):
         self.assertEqual(result, [2, 4, 6])
 
     def test_two_generators(self):
-        result = (given([1, 2, 3])
-                     (i*2 for i in ANS)
-                     (i*3 for i in ANS)
-                     (list)
-                .end)
+        result = given([1, 2, 3])(i*2 for i in ANS)(i*3 for i in ANS)(list).end
         self.assertEqual(result, [6, 12, 18])
 
     def test_many_for_statements(self):
@@ -88,21 +80,6 @@ class LetSuite(unittest.TestCase):
                   "at first \(3 given\)\."
         with self.assertRaisesRegex(TypeError, message):
             given("abc")((i for i in ANS), 1, 2, z=3).end
-
-
-class LetObjSuite(unittest.TestCase):
-    def test_functions(self):
-        operation = with_given_obj(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
-        self.assertEqual(operation(1), 21)
-
-    def test_generator_copy(self):
-        operation = (with_given_obj
-            (n for n in ANS if n%2 == 0)
-            (n + 2 for n in ANS)
-            (list)
-        .end)
-        self.assertEqual(operation([1, 2, 3, 4, 5, 6]), [4, 6, 8])
-        self.assertEqual(operation([7, 8, 9, 10, 11, 12]), [10, 12, 14])
 
 
 if __name__ == '__main__':
