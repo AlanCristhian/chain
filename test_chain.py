@@ -1,5 +1,4 @@
 import unittest
-from operator import add
 from itertools import product
 
 from chain import given, ANS
@@ -24,7 +23,7 @@ class GivenSuite(unittest.TestCase):
         self.assertEqual(result, "abc")
 
     def test_explicit_positinonal_argument(self):
-        result = given(9)(lambda x, y: 0/y, 0, ANS).end
+        result = given(9)(lambda x, y: x/y, 0, ANS).end
         self.assertEqual(result, 0)
 
     def test_many_explicit_positinonal_argument(self):
