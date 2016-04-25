@@ -2,7 +2,21 @@
 
 *Chain* is a framework for performing data transformation and
 data analysis pipelines by *successive function calls* and
-*successive generator consumption*.
+*successive generator consumption*. E.g:
+
+```python
+from itertools import cycle, count, accumulate, islice
+from chain import given, ANS
+
+pi = (given([4, -4])
+    (cycle)
+    (zip, count(1, 2))
+    (x/y for x, y in ANS)
+    (accumulate)
+    (islice, 10000000, None)
+    (next)
+.end)
+```
 
 ## Installation
 
@@ -12,17 +26,17 @@ $ pip install git+https://github.com/AlanCristhian/chain.git
 
 ## Tutorial
 
-### Successive call with functions
+### Successive function calls
 
 Execute a function with the given object:
 
 ```python
 >>> from chain import given
->>> given(15)(lambda x: x + 15).end
+>>> given(10)(lambda x: x + 20).end
 30
 ```
 
-The `given` function execute the *lambda function* with `15` as argument. The
+The `given` function execute the *lambda function* with `10` as argument. The
 `.end` property return the result of the execution.
 
 You can chain function execution by successive calls:
@@ -67,7 +81,7 @@ language lecture order.
 *method chaining pattern*. The issue with *method chaining* is that you can
 chain only methos defined in the class that use such pattern.
 
-The *successive calls pattern* let you chain any function or any method of any
+The *successive calls pattern* let you chain any function or method of any
 object. In the example bellow, I use the `upper` method of the `str` class.
 
 ```python
@@ -131,7 +145,7 @@ order. So, *keyword arguments* are allowed:
 'xyz'
 ```
 
-Another common pattern is piping via the Unix `|` symbol. At next I show you
+Another common pattern is *piping* via the Unix `|` symbol. At next I show you
 a [recipe published by Steven D'Aprano.](http://code.activestate.com/recipes/580625-collection-pipeline-in-python/)
 
 ```python
@@ -151,7 +165,7 @@ List = Apply(list)
 ```
 
 But, what if you want to use a function that take more than one argument like
-zip function? You can't do this with function composition or piping.
+zip function? You can't do this with *function composition* or *piping*.
 
 Succesive function call sovles such problem:
 
@@ -162,7 +176,7 @@ Succesive function call sovles such problem:
 
 ### Successive generator consumption
 
-If you pass a *generator expression* as first argument, you can consume
+If you pass a *generator expression* as unique argument, you can consume
 those *generators* successively.
 
 ```python
@@ -185,9 +199,6 @@ What if you want to do some like:
 >>> given(10)(i for i in range(ANS))(list).end
 ...
 ValueError: Can not iterate over 'range', 'ANS' constant only.
->>> given("abc")(i for i in enumerate(ANS))(list).end
-...
-ValueError: Can not iterate over 'enumerate', 'ANS' constant only.
 ```
 
 To do that you must call the `range` or `enumerate` function first.
@@ -195,8 +206,6 @@ To do that you must call the `range` or `enumerate` function first.
 ```python
 >>> given(10)(range)(i for i in ANS)(list).end
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
->>> given("abc")(enumerate)(i for i in ANS)(list).end
-[(0, "a"), (1, "b"), (2, "c")]
 ```
 
 Another limitation is that you can not iterate over "nested for statements":
