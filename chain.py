@@ -18,14 +18,18 @@ from types import GeneratorType, FunctionType
 __all__ = ["given", "ANS"]
 
 
-def _replace_dot_zero(generator, iterable):
+def _replace_dot_zero(generator, iterable, old_locals):
     # Return a copy of the `generator` argument and replace
     # their "dot zero" local constant with the `iterable` object.
-    return FunctionType(
+    generator_function = FunctionType(
         generator.gi_code,
         generator.gi_frame.f_globals,
         generator.__name__
-    )(**{**generator.gi_frame.f_locals, ".0": iterable})
+    )
+    # create a new `dict` because `old_locals` is an inmutable `dict`
+    new_locals = {**old_locals, ".0": iterable}
+    # create and return a new "generator object"
+    return generator_function(**new_locals)
 
 
 class _LastAnswer:
@@ -71,8 +75,7 @@ def _replace_ans_in_args(obj, args):
 
 def _replace_ans_in_kwargs(obj, kwargs):
     # if a key have the `ANS` constant as value, replace it value with `obj`
-    right_values = {key: obj for key, value in kwargs.items() if value is ANS}
-    return {**kwargs, **right_values}
+    return {key: obj if value is ANS else value for key, value in kwargs.items()}
 
 
 def given(obj):
@@ -107,12 +110,12 @@ def given(obj):
                 raise TypeError(message % count)
             if _have_nested_for_statement(instruction):
                 raise SyntaxError("Multiple for statement are not supported.")
-            dot_zero = instruction.gi_frame.f_locals[".0"]
-            if isinstance(dot_zero, _LastAnswer):
-                result = _replace_dot_zero(instruction, iter(obj))
+            old_locals = instruction.gi_frame.f_locals
+            if isinstance(old_locals[".0"], _LastAnswer):
+                result = _replace_dot_zero(instruction, iter(obj), old_locals)
             else:
                 message = "Can not iterate over '%s', 'ANS' constant only."
-                raise ValueError(message % dot_zero.__class__.__name__)
+                raise ValueError(message % old_locals[".0"].__class__.__name__)
         else:
             message = "Expected 'callable' or 'generator'. Got '%s'"
             raise TypeError(message % instruction.__class__.__name__)
