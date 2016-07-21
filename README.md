@@ -1,22 +1,20 @@
-# chain
+# Chain
 
-*Chain* is a framework for performing data transformation and
-data analysis pipelines by *successive function calls* and
-*successive generator consumption*. E.g:
+**Chain** is a tiny tool for performing data transformation and data
+analysis by *successive function calls* and *successive generator*
+*consumption*. For example:
 
 ```python
-from itertools import cycle, count, accumulate, islice
-from chain import given, ANS
-
-pi = (given([4, -4])
-    (cycle)
-    (zip, count(1, 2))
-    (x/y for x, y in ANS)
-    (accumulate)
-    (islice, 10000000, None)
-    (next)
-.end)
+>>> from chain import given, ANS
+>>> given("abcd")(reversed)(c.upper() for c in ANS)(list).end
+['D', 'C', 'B', 'A']
 ```
+
+The `reversed` function runs with `"abcd"` as argument. Then the generator
+expression iterates over the `ANS` constant. `ANS` stores the result returned
+for `reversed`. At next, the generator converts each character in the string
+to uppercase. Then calls the `list` function whit the generator. Finally,
+lookups the `.end` property that stores the result of the execution.
 
 ## Installation
 
@@ -26,25 +24,28 @@ $ pip install git+https://github.com/AlanCristhian/chain.git
 
 ## Tutorial
 
-### Successive function calls
+### Successive Function Calls
 
-Execute a function with the given object:
+Executes a function with the given object:
 
 ```python
 >>> from chain import given
->>> given(10)(lambda x: x + 20).end
-30
+>>> given(1)(lambda x: x + 2).end
+3
 ```
 
-The `given` function execute the *lambda function* with `10` as argument. The
-`.end` property return the result of the execution.
+The `given` function calls the *lambda function* with `1` as argument. The
+`.end` property returns the result of the execution.
 
-You can chain function execution by successive calls:
+You can compose many functions by successive calls:
 
 ```python
->>> from chain import given
->>> given([1.5, 2.5, 3.9])(max)(round)(lamba x: x**10).end
-1048576
+>>> (given([1.5, 2.5, 3.9])
+...     (max)
+...     (round)
+...     (lambda x: x + 2)
+... .end)
+6
 ```
 
 Each function sourounded by parenthesis is called with the result of the
@@ -54,56 +55,20 @@ precedent function as argument. The below construction is equivalent to.
 >>> last = [1.5, 2.5, 3.9]
 >>> last = max(last)
 >>> last = round(last)
->>> (lambda x: x**10)(last)
-1048576
+>>> (lambda x: x + 2)(last)
+6
 ```
 
-Also is the same that:
+### Use functions with more than one argument
+
+You can pass arguments to each function. The first argument of the succesive
+call should be a *Callable* or *Generator*. The *Callable* passed as argument
+is executed whit the output of the previous call as first argument and the
+passed argument as second. E.g
 
 ```python
->>> (lambda x: x**10)(round(max([1.5, 2.5, 3.9])))
-1048576
-```
-
-If you compare the two next lines of code, you can see that the first
-sentence is nested, and the second is flat.
-
-```python
-(lambda x: x**10)(round(max([1.5, 2.5, 3.9])))
-given([1.5, 2.5, 3.9])(max)(round)(lamba x: x**10).end
-```
-
-Also, the execution order of the first line is from right to left. In the
-second line, the order of execution is from left to right, like the english
-language lecture order.
-
-`given` try to solve the same problems that those libraries that implement the
-*method chaining pattern*. The issue with *method chaining* is that you can
-chain only methos defined in the class that use such pattern.
-
-The *successive calls pattern* let you chain any function or method of any
-object. In the example bellow, I use the `upper` method of the `str` class.
-
-```python
->>> given('abc')(str.upper).end
-'ABC'
-```
-
-Here an example with the `operator` module:
-
-```python
->>> import operator
->>> given(10)(operator.pow, 3)(operator.truediv, 2)(operator.sub, 200).end
-300
-```
-
-As you can see in the previous example, you can pass arguments to each
-function. The first argument of the succesive call should be a *Callable* or
-*Generator*. The *Callable* passed as argument is executed whit the output of
-the previous call as first argument and the passed argument as second. E.g
-
-```python
->>> given(10)(lambda x, y: x + y, 20).end
+>>> add = lambda x, y: x + y
+>>> given(10)(add, 20).end
 30
 ```
 
@@ -115,7 +80,9 @@ do the same with as many arguments as you want:
 60
 ```
 
-Maybe you observe that the *lambda function* is executed with object returned
+### The `ANS` constant
+
+In all previous examples the *lambda function* is executed with object returned
 by the previous call as firs argument. What if you want to pass the returned
 object as second, third or any order? You can use the `ANS` constant:
 
@@ -125,8 +92,8 @@ object as second, third or any order? You can use the `ANS` constant:
 'OneTwoThree'
 ```
 
-The `ANS` constant is like the ```ans``` key in scientific calculators. ANS is
-by "last **ans**wer".
+The `ANS` constant is like the ```ans``` key in scientific calculators. `ANS`
+is by "last **ans**wer". They stores the output of the previous operation.
 
 You can use the `ANS` constant as many times as you want:
 
@@ -145,34 +112,7 @@ order. So, *keyword arguments* are allowed:
 'xyz'
 ```
 
-Another common pattern is *piping* via the Unix `|` symbol. At next I show you
-a [recipe published by Steven D'Aprano.](http://code.activestate.com/recipes/580625-collection-pipeline-in-python/)
-
-```python
-class Apply:
-    def __init__(self, func):
-        self.func = func
-    def __ror__(self, iterable):
-        return self.func(iterable)
-
-Reverse = Apply(reversed)
-List = Apply(list)
-```
-
-```python
->>> "abcd" | Reverse | List
-['d', 'c', 'b', 'a']
-```
-
-But, what if you want to use a function that take more than one argument like
-zip function? You can't do this with *function composition* or *piping*.
-
-Succesive function call sovles such problem:
-
-```python
->>> given("abcd")(zip, ANS, range(4))(list).end
-[('a', 0), ('b', 1), ('c', 2), ('d', 3)]
-```
+You can use `ANS` if you want to be more explicit
 
 ### Successive generator consumption
 
@@ -180,7 +120,11 @@ If you pass a *generator expression* as unique argument, you can consume
 those *generators* successively.
 
 ```python
->>> given([1, 2, 3])(i*2 for i in ANS)(i*3 for i in ANS)(list).end
+>>> (given([1, 2, 3])
+...     (i*2 for i in ANS)
+...     (i*3 for i in ANS)
+...     (list)
+... .end)
 [6, 12, 18]
 ```
 
@@ -188,38 +132,194 @@ The `given` object can only consume those generators that iterate over the
 `ANS` constant:
 
 ```python
->>> given("abc")(i for i in [1, 2])(list).end
-...
-ValueError: Can not iterate over 'list_iterator', 'ANS' constant only.
+>>> given("abc")(i for i in (1, 2))(list).end
+ValueError: Can not iterate over 'tuple_iterator', 'ANS' constant only.
 ```
 
 What if you want to do some like:
 
 ```python
->>> given(10)(i for i in range(ANS))(list).end
-...
+>>> (given("abc")
+...     ((i, j) for i, j in enumerate(ANS))
+...     (list)
+... .end)
 ValueError: Can not iterate over 'range', 'ANS' constant only.
 ```
 
-To do that you must call the `range` or `enumerate` function first.
+To do that you must call the `enumerate` function first.
 
 ```python
->>> given(10)(range)(i for i in ANS)(list).end
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+>>> (given("abcd")
+...     (enumerate)
+...     ((i, j) for i, j in ANS)
+...     (list)
+... .end)
+[('a', 0), ('b', 1), ('c', 2), ('d', 3)]
 ```
 
 Another limitation is that you can not iterate over "nested for statements":
 
 ```python
->>> given("abc")(i + j for i in ANS for j in "xyz")(list).end
-SyntaxError: "Multiple for statement are not supported."
+>>> (given("abc")
+...     (i + j for i in ANS for j in "xyz")
+...     (list)
+... .end)
+SyntaxError: "Multiple for statements" are not allowed.
 ```
 
-**But**, you can use the `product` function of the `itertools` module.
+To do that you should use the `product` function of the `itertools` module.
 
 ```python
 >>> from itertools import product
->>> from chain import given, ANS
->>> given("abc")(product, "xyz", ANS)(i + j for i, j in ANS)(list).end
+>>> (given("abc")
+...     (product, "xyz", ANS)
+...     (i + j for i, j in ANS)
+...     (list)
+... .end)
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
+
+
+### Reuse successive calls object
+
+In case that you want to reutilize a set of operations over an generic object,
+chain provide the `with_given_obj` function:
+
+```python
+>>> from chain import with_given_obj, ANS
+>>> add_3_to_even = (with_given_obj
+...                     (n for n in ANS if n%2 == 0)
+...                     (n + 3 for n in ANS)
+...                     (list)
+...                 .end)
+>>> add_3_to_even([1, 2, 3, 4, 5, 6])
+[5, 7, 9]
+```
+
+All functions created with the `with_given_obj` function can only accept one
+postional argument.
+
+-------------------------------------------------------------------------------
+
+## API Documentation
+
+### function `given(obj: Any) -> given.<locals>.link`
+### function `given(obj):`
+
+Return a function that implement the successive calls pattern.
+
+```python
+>>> operation = given("abcd")    # <-- here
+>>> operation
+<function given.<locals>.link at 0x7fe2ab0b29d8>
+```
+
+### funcion `given.<locals>.link(instruction: Callable[...], *args: Tuple[Any], **kwargs: Dict[str, Any]) -> given.<locals>.link`
+### funcion `given.<locals>.link(instruction: Generator, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> given.<locals>.link`
+### funcion `given.<locals>.link(instruction, *args, **kwargs)`
+
+Implement the successive call patern.
+
+```python
+>>> operation = given("abcd")
+>>> operation
+<function given.<locals>.link at 0x7fe2ab0b29d8>
+>>> operation(reversed)(list)    # <-- here
+<function given.<locals>.link at 0x7fe2a91b6f28>
+```
+
+### property `given.<locals>.link.end  #Type: Any`
+### property `given.<locals>.link.end`
+
+Store the result of the execution.
+
+```python
+>>> operation = given("abcd")
+>>> operation
+<function given.<locals>.link at 0x7fe2ab0b29d8>
+>>> operation(reversed)(list).end    # <-- here
+['D', 'C', 'B', 'A']
+```
+
+### function `with_given_obj(instruction: Callable[...]) -> with_given_obj.<locals>.link`
+### function `with_given_obj(instruction: Generator) -> with_given_obj.<locals>.link`
+### function `with_given_obj(instruction)`
+
+Define a function by successive calls pattern.
+
+```python
+>>> from operator import add, mul
+>>> operation = with_given_obj(add, 2)(mul, 3)    # <-- here
+<function with_given_obj.<locals>.link at 0x7fe2a919c048>
+```
+
+### property `with_given_obj.<locals>.link.end  #Type: Callable[[Any], Any]`
+### property `with_given_obj.<locals>.link.end`
+
+Store the function created with `with_given_obj`.
+
+### constant `ANS  #Type: Iterable[Any]`
+### constant `ANS`
+
+This constant will be used to collect the output of the previous
+function or store the previous generator defined in the chain.
+
+-------------------------------------------------------------------------------
+
+## API Documentation
+
+### class `Given(obj: Any) -> Link`
+### class `Given(obj)`
+
+Return a class that implement the successive calls pattern.
+
+```python
+>>> link = Given("abcd")    # <-- here
+>>> link
+<Link object at 0x7fe2ab0b29d8>
+```
+
+### class `Link(instruction: Callable[...], *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Link`
+### class `Link(instruction: Generator, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Link`
+### class `Link(instruction, *args, **kwargs)`
+
+Implement the successive call pattern. Allways retunrn a `Link` object.
+
+```python
+>>> link = given("abcd")(reversed)(list)
+<Link object at 0x7fe2a91b6f28>
+```
+
+### property `Link.end  #Type: Any`
+### property `Link.end`
+
+Store the result of the execution.
+
+```python
+>>> link = given("abcd")(reversed)(list)
+>>> link.end    # <-- here
+['D', 'C', 'B', 'A']
+```
+
+### function `WithGivenObject(instruction: Callable[...]) -> WithGivenObject`
+### function `WithGivenObject(instruction: Generator) -> WithGivenObject`
+### function `WithGivenObject(instruction)`
+
+Define a function by successive calls pattern.
+
+```python
+>>> from operator import add, mul
+>>> operation = WithGivenObject(add, 2)(mul, 3)    # <-- here
+<WithGivenObject object at 0x7fe2a919c048>
+```
+
+### property `WithGivenObject.end  #Type: Callable[[Any], Any]`
+### property `WithGivenObject.end`
+
+Store the function created with `WithGivenObject`.
+
+### constant `ANS  #Type: Iterable[Any]`
+### constant `ANS`
+
+This constant will be used to collect the output of the previous
+function or store the previous generator defined in the chain.

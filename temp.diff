@@ -1,0 +1,971 @@
+diff --git a/README.md b/README.md
+index 7f0eed3..df079d8 100644
+--- a/README.md
++++ b/README.md
+@@ -1,23 +1,21 @@
+-# chain
++# Chain
+ 
+-*Chain* is a framework for performing data transformation and
+-data analysis pipelines by *successive function calls* and
+-*successive generator consumption*. E.g:
++**Chain** is a tiny tool for performing data transformation and data
++analysis by *successive function calls* and *successive generator*
++*consumption*. For example:
+ 
+ ```python
+-from itertools import cycle, count, accumulate, islice
+-from chain import given, ANS
+-
+-pi = (given([4, -4])
+-    (cycle)
+-    (zip, count(1, 2))
+-    (x/y for x, y in ANS)
+-    (accumulate)
+-    (islice, 10000000, None)
+-    (next)
+-.end)
++>>> from chain import given, ANS
++>>> given("abcd")(reversed)(c.upper() for c in ANS)(list).end
++['D', 'C', 'B', 'A']
+ ```
+ 
++The `reversed` function runs with `"abcd"` as argument. Then the generator
++expression iterates over the `ANS` constant. `ANS` stores the result returned
++for `reversed`. At next, the generator converts each character in the string
++to uppercase. Then calls the `list` function whit the generator. Finally,
++lookups the `.end` property that stores the result of the execution.
++
+ ## Installation
+ 
+ ```shell
+@@ -26,25 +24,28 @@ $ pip install git+https://github.com/AlanCristhian/chain.git
+ 
+ ## Tutorial
+ 
+-### Successive function calls
++### Successive Function Calls
+ 
+-Execute a function with the given object:
++Executes a function with the given object:
+ 
+ ```python
+ >>> from chain import given
+->>> given(10)(lambda x: x + 20).end
+-30
++>>> given(1)(lambda x: x + 2).end
++3
+ ```
+ 
+-The `given` function execute the *lambda function* with `10` as argument. The
+-`.end` property return the result of the execution.
++The `given` function calls the *lambda function* with `1` as argument. The
++`.end` property returns the result of the execution.
+ 
+-You can chain function execution by successive calls:
++You can compose many functions by successive calls:
+ 
+ ```python
+->>> from chain import given
+->>> given([1.5, 2.5, 3.9])(max)(round)(lamba x: x**10).end
+-1048576
++>>> (given([1.5, 2.5, 3.9])
++...     (max)
++...     (round)
++...     (lambda x: x + 2)
++... .end)
++6
+ ```
+ 
+ Each function sourounded by parenthesis is called with the result of the
+@@ -54,56 +55,20 @@ precedent function as argument. The below construction is equivalent to.
+ >>> last = [1.5, 2.5, 3.9]
+ >>> last = max(last)
+ >>> last = round(last)
+->>> (lambda x: x**10)(last)
+-1048576
+-```
+-
+-Also is the same that:
+-
+-```python
+->>> (lambda x: x**10)(round(max([1.5, 2.5, 3.9])))
+-1048576
+-```
+-
+-If you compare the two next lines of code, you can see that the first
+-sentence is nested, and the second is flat.
+-
+-```python
+-(lambda x: x**10)(round(max([1.5, 2.5, 3.9])))
+-given([1.5, 2.5, 3.9])(max)(round)(lamba x: x**10).end
+-```
+-
+-Also, the execution order of the first line is from right to left. In the
+-second line, the order of execution is from left to right, like the english
+-language lecture order.
+-
+-`given` try to solve the same problems that those libraries that implement the
+-*method chaining pattern*. The issue with *method chaining* is that you can
+-chain only methos defined in the class that use such pattern.
+-
+-The *successive calls pattern* let you chain any function or method of any
+-object. In the example bellow, I use the `upper` method of the `str` class.
+-
+-```python
+->>> given('abc')(str.upper).end
+-'ABC'
++>>> (lambda x: x + 2)(last)
++6
+ ```
+ 
+-Here an example with the `operator` module:
+-
+-```python
+->>> import operator
+->>> given(10)(operator.pow, 3)(operator.truediv, 2)(operator.sub, 200).end
+-300
+-```
++### Use functions with more than one argument
+ 
+-As you can see in the previous example, you can pass arguments to each
+-function. The first argument of the succesive call should be a *Callable* or
+-*Generator*. The *Callable* passed as argument is executed whit the output of
+-the previous call as first argument and the passed argument as second. E.g
++You can pass arguments to each function. The first argument of the succesive
++call should be a *Callable* or *Generator*. The *Callable* passed as argument
++is executed whit the output of the previous call as first argument and the
++passed argument as second. E.g
+ 
+ ```python
+->>> given(10)(lambda x, y: x + y, 20).end
++>>> add = lambda x, y: x + y
++>>> given(10)(add, 20).end
+ 30
+ ```
+ 
+@@ -115,7 +80,9 @@ do the same with as many arguments as you want:
+ 60
+ ```
+ 
+-Maybe you observe that the *lambda function* is executed with object returned
++### The `ANS` constant
++
++In all previous examples the *lambda function* is executed with object returned
+ by the previous call as firs argument. What if you want to pass the returned
+ object as second, third or any order? You can use the `ANS` constant:
+ 
+@@ -125,8 +92,8 @@ object as second, third or any order? You can use the `ANS` constant:
+ 'OneTwoThree'
+ ```
+ 
+-The `ANS` constant is like the ```ans``` key in scientific calculators. ANS is
+-by "last **ans**wer".
++The `ANS` constant is like the ```ans``` key in scientific calculators. `ANS`
++is by "last **ans**wer". They stores the output of the previous operation.
+ 
+ You can use the `ANS` constant as many times as you want:
+ 
+@@ -145,81 +112,214 @@ order. So, *keyword arguments* are allowed:
+ 'xyz'
+ ```
+ 
+-Another common pattern is *piping* via the Unix `|` symbol. At next I show you
+-a [recipe published by Steven D'Aprano.](http://code.activestate.com/recipes/580625-collection-pipeline-in-python/)
++You can use `ANS` if you want to be more explicit
+ 
+-```python
+-class Apply:
+-    def __init__(self, func):
+-        self.func = func
+-    def __ror__(self, iterable):
+-        return self.func(iterable)
++### Successive generator consumption
++
++If you pass a *generator expression* as unique argument, you can consume
++those *generators* successively.
+ 
+-Reverse = Apply(reversed)
+-List = Apply(list)
++```python
++>>> (given([1, 2, 3])
++...     (i*2 for i in ANS)
++...     (i*3 for i in ANS)
++...     (list)
++... .end)
++[6, 12, 18]
+ ```
+ 
++The `given` object can only consume those generators that iterate over the
++`ANS` constant:
++
+ ```python
+->>> "abcd" | Reverse | List
+-['d', 'c', 'b', 'a']
++>>> given("abc")(i for i in (1, 2))(list).end
++ValueError: Can not iterate over 'tuple_iterator', 'ANS' constant only.
+ ```
+ 
+-But, what if you want to use a function that take more than one argument like
+-zip function? You can't do this with *function composition* or *piping*.
++What if you want to do some like:
++
++```python
++>>> (given("abc")
++...     ((i, j) for i, j in enumerate(ANS))
++...     (list)
++... .end)
++ValueError: Can not iterate over 'range', 'ANS' constant only.
++```
+ 
+-Succesive function call sovles such problem:
++To do that you must call the `enumerate` function first.
+ 
+ ```python
+->>> given("abcd")(zip, ANS, range(4))(list).end
++>>> (given("abcd")
++...     (enumerate)
++...     ((i, j) for i, j in ANS)
++...     (list)
++... .end)
+ [('a', 0), ('b', 1), ('c', 2), ('d', 3)]
+ ```
+ 
+-### Successive generator consumption
++Another limitation is that you can not iterate over "nested for statements":
+ 
+-If you pass a *generator expression* as unique argument, you can consume
+-those *generators* successively.
++```python
++>>> (given("abc")
++...     (i + j for i in ANS for j in "xyz")
++...     (list)
++... .end)
++SyntaxError: "Multiple for statements" are not allowed.
++```
++
++To do that you should use the `product` function of the `itertools` module.
+ 
+ ```python
+->>> given([1, 2, 3])(i*2 for i in ANS)(i*3 for i in ANS)(list).end
+-[6, 12, 18]
++>>> from itertools import product
++>>> (given("abc")
++...     (product, "xyz", ANS)
++...     (i + j for i, j in ANS)
++...     (list)
++... .end)
++['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
+ ```
+ 
+-The `given` object can only consume those generators that iterate over the
+-`ANS` constant:
++
++### Reuse successive calls object
++
++In case that you want to reutilize a set of operations over an generic object,
++chain provide the `with_given_obj` function:
+ 
+ ```python
+->>> given("abc")(i for i in [1, 2])(list).end
+-...
+-ValueError: Can not iterate over 'list_iterator', 'ANS' constant only.
++>>> from chain import with_given_obj, ANS
++>>> add_3_to_even = (with_given_obj
++...                     (n for n in ANS if n%2 == 0)
++...                     (n + 3 for n in ANS)
++...                     (list)
++...                 .end)
++>>> add_3_to_even([1, 2, 3, 4, 5, 6])
++[5, 7, 9]
+ ```
+ 
+-What if you want to do some like:
++All functions created with the `with_given_obj` function can only accept one
++postional argument.
++
++-------------------------------------------------------------------------------
++
++## API Documentation
++
++### function `given(obj: Any) -> given.<locals>.link`
++### function `given(obj):`
++
++Return a function that implement the successive calls pattern.
+ 
+ ```python
+->>> given(10)(i for i in range(ANS))(list).end
+-...
+-ValueError: Can not iterate over 'range', 'ANS' constant only.
++>>> operation = given("abcd")    # <-- here
++>>> operation
++<function given.<locals>.link at 0x7fe2ab0b29d8>
+ ```
+ 
+-To do that you must call the `range` or `enumerate` function first.
++### funcion `given.<locals>.link(instruction: Callable[...], *args: Tuple[Any], **kwargs: Dict[str, Any]) -> given.<locals>.link`
++### funcion `given.<locals>.link(instruction: Generator, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> given.<locals>.link`
++### funcion `given.<locals>.link(instruction, *args, **kwargs)`
++
++Implement the successive call patern.
+ 
+ ```python
+->>> given(10)(range)(i for i in ANS)(list).end
+-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
++>>> operation = given("abcd")
++>>> operation
++<function given.<locals>.link at 0x7fe2ab0b29d8>
++>>> operation(reversed)(list)    # <-- here
++<function given.<locals>.link at 0x7fe2a91b6f28>
+ ```
+ 
+-Another limitation is that you can not iterate over "nested for statements":
++### property `given.<locals>.link.end  #Type: Any`
++### property `given.<locals>.link.end`
++
++Store the result of the execution.
+ 
+ ```python
+->>> given("abc")(i + j for i in ANS for j in "xyz")(list).end
+-SyntaxError: "Multiple for statement are not supported."
++>>> operation = given("abcd")
++>>> operation
++<function given.<locals>.link at 0x7fe2ab0b29d8>
++>>> operation(reversed)(list).end    # <-- here
++['D', 'C', 'B', 'A']
+ ```
+ 
+-**But**, you can use the `product` function of the `itertools` module.
++### function `with_given_obj(instruction: Callable[...]) -> with_given_obj.<locals>.link`
++### function `with_given_obj(instruction: Generator) -> with_given_obj.<locals>.link`
++### function `with_given_obj(instruction)`
++
++Define a function by successive calls pattern.
+ 
+ ```python
+->>> from itertools import product
+->>> from chain import given, ANS
+->>> given("abc")(product, "xyz", ANS)(i + j for i, j in ANS)(list).end
+-['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
++>>> from operator import add, mul
++>>> operation = with_given_obj(add, 2)(mul, 3)    # <-- here
++<function with_given_obj.<locals>.link at 0x7fe2a919c048>
+ ```
++
++### property `with_given_obj.<locals>.link.end  #Type: Callable[[Any], Any]`
++### property `with_given_obj.<locals>.link.end`
++
++Store the function created with `with_given_obj`.
++
++### constant `ANS  #Type: Iterable[Any]`
++### constant `ANS`
++
++This constant will be used to collect the output of the previous
++function or store the previous generator defined in the chain.
++
++-------------------------------------------------------------------------------
++
++## API Documentation
++
++### class `Given(obj: Any) -> Link`
++### class `Given(obj)`
++
++Return a class that implement the successive calls pattern.
++
++```python
++>>> link = Given("abcd")    # <-- here
++>>> link
++<Link object at 0x7fe2ab0b29d8>
++```
++
++### class `Link(instruction: Callable[...], *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Link`
++### class `Link(instruction: Generator, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Link`
++### class `Link(instruction, *args, **kwargs)`
++
++Implement the successive call pattern. Allways retunrn a `Link` object.
++
++```python
++>>> link = given("abcd")(reversed)(list)
++<Link object at 0x7fe2a91b6f28>
++```
++
++### property `Link.end  #Type: Any`
++### property `Link.end`
++
++Store the result of the execution.
++
++```python
++>>> link = given("abcd")(reversed)(list)
++>>> link.end    # <-- here
++['D', 'C', 'B', 'A']
++```
++
++### function `WithGivenObject(instruction: Callable[...]) -> WithGivenObject`
++### function `WithGivenObject(instruction: Generator) -> WithGivenObject`
++### function `WithGivenObject(instruction)`
++
++Define a function by successive calls pattern.
++
++```python
++>>> from operator import add, mul
++>>> operation = WithGivenObject(add, 2)(mul, 3)    # <-- here
++<WithGivenObject object at 0x7fe2a919c048>
++```
++
++### property `WithGivenObject.end  #Type: Callable[[Any], Any]`
++### property `WithGivenObject.end`
++
++Store the function created with `WithGivenObject`.
++
++### constant `ANS  #Type: Iterable[Any]`
++### constant `ANS`
++
++This constant will be used to collect the output of the previous
++function or store the previous generator defined in the chain.
+diff --git a/chain.py b/chain.py
+index e72cef7..e3e92dc 100644
+--- a/chain.py
++++ b/chain.py
+@@ -1,126 +1,272 @@
+ """
+-Implement a data transformation by successive calls like pipes. E.g:
+-
+->>> from operator import add, mul
+->>> # python style
+-... print(mul(add(add(1, 2), 3), 4)
+-24
+->>> # chained calls style
+-... from chain import given
+->>> given(1)(add, 2)(add, 3)(mul, 4)(print)
+-24
+-"""
++Chain is a tiny tool for performing data transformation and data analysis
++by successive function calls and successive generator consumption. For example:
++
++>>> from chain import given, ANS
++>>> given("abcd")(reversed)(c.upper() for c in ANS)(list).end
++['D', 'C', 'B', 'A']
+ 
++The 'reversed' function runs with '"abcd"' as argument. Then the generator
++expression iterates over the 'ANS' constant. 'ANS' stores the result returned
++for 'reversed'. At next, the generator converts each character in the string
++to uppercase. Then calls the 'list' function whit the generator. Finally,
++lookups the '.end' property that stores the result of the execution.
++"""
+ 
+-from types import GeneratorType, FunctionType
++import dis
++import types
+ 
+ 
+-__all__ = ["given", "ANS"]
++__all__ = ["given", "ANS", "with_given_obj", "Given", "WithGivenObject"]
+ 
+ 
++# In CPython, all generator expressions stores the iterable of the first
++# "for statement" in a local constant called ".0", the "dot zero" constant.
++#
++# This function returns a copy of the `generator` argument and
++# replaces their "dot zero" constant with the `iterable` object.
+ def _replace_dot_zero(generator, iterable, old_locals):
+-    # Return a copy of the `generator` argument and replace
+-    # their "dot zero" local constant with the `iterable` object.
+-    generator_function = FunctionType(
++    generator_function = types.FunctionType(
+         generator.gi_code,
+         generator.gi_frame.f_globals,
+         generator.__name__
+     )
+-    # create a new `dict` because `old_locals` is an inmutable `dict`
++
++    # Creates a new `dict` because `old_locals` is inmutable.
+     new_locals = {**old_locals, ".0": iterable}
+-    # create and return a new "generator object"
++
++    # Creates and returns a new "generator object".
+     return generator_function(**new_locals)
+ 
+ 
++# Implements the minimun protocol to have an iterable.
+ class _LastAnswer:
+-    # Implement the minimun protocol to have an iterable object.
+     def __iter__(self):
+-        return self  # Return itself because I want to check identity later
++        return self  # Returns itself because I want to check identity later.
+ 
+     def __next__(self):
+         pass
+ 
+ 
++# This constant will be used to collect the output of the previous
++# function or store the previous generator defined in the chain.
+ ANS = _LastAnswer()
+ 
+ 
++# Return True if the generator have more than one "for statement".
+ def _have_nested_for_statement(generator):
+-    # This function return true if the generator have more
+-    # than one "for statement". Return false if have only one.
+-    code = generator.gi_code.co_code
+-    # The first nine bytes are equal in the code of all
+-    # generator expressions. Also, the fourth byte is
+-    # the op code of the first FOR_ITER. So, I start
+-    # the count of all FOR_ITER int the nineth byte.
+-    i = 9
+-    # Like after, the last seven bytes in the code of all generator
+-    # expressions are the same and are different than FOR_ITER op
+-    # code .So, I end the count seven position less than code length.
+-    n = len(code) - 7
+-    while i < n:
+-        op = code[i]
+-        if op >= 90:
+-            if op == 93:  # FOR_ITER
+-                return True
+-            i += 3
+-        else:
+-            i += 1
+-    return False
++    matched = [True for instruction in dis.get_instructions(generator)
++               if instruction.opname == "FOR_ITER"]
++    return True if len(matched) > 1 else False
+ 
+ 
++# Replace each `ANS` item with the given `obj`
+ def _replace_ans_in_args(obj, args):
+-    # replace each `ANS` item with the given `obj`
+     return (obj if item is ANS else item for item in args)
+ 
+ 
++# Replace each `ANS` value with the given `obj`
+ def _replace_ans_in_kwargs(obj, kwargs):
+-    # if a key have the `ANS` constant as value, replace it value with `obj`
+-    return {key: obj if value is ANS else value for key, value in kwargs.items()}
++    return {key: obj if value is ANS else value
++            for (key, value) in kwargs.items()}
++
++
++class Link:
++    """
++    If `instruction` is a Callable, call them with `args` and
++    `kwargs`. Store `instruction` in `ANS` if it is a Generator.
++    """
++    def __init__(self, obj):
++        self.end = obj
++
++    def __call__(self, instruction, *args, **kwargs):
++        if callable(instruction):
++            has_ans_constant = False
++            if ANS in args:
++                has_ans_constant = True
++                args = _replace_ans_in_args(self.end, args)
++            if ANS in kwargs.values():
++                has_ans_constant = True
++                kwargs = _replace_ans_in_kwargs(self.end, kwargs)
++            if has_ans_constant:
++                result = instruction(*args, **kwargs)
++            else:
++                result = instruction(self.end, *args, **kwargs)
++
++        elif isinstance(instruction, types.GeneratorType):
++            if args or kwargs:
++                description = "Can not accept arguments if you pass "\
++                              "a generator at first (%d given)."
++                count = len(args) + len(kwargs)
++                raise TypeError(description % count)
++            if _have_nested_for_statement(instruction):
++                raise SyntaxError("Multiple for statement are not allowed.")
++            old_locals = instruction.gi_frame.f_locals
++            if isinstance(old_locals[".0"], _LastAnswer):
++                result = _replace_dot_zero(instruction, iter(self.end), old_locals)
++            else:
++                description = "Can not iterate over '%s', 'ANS' constant only."
++                class_name = old_locals[".0"].__class__.__name__
++                raise ValueError(description % class_name)
++
++        else:
++            description = "Expected 'callable' or 'generator'. Got '%s'"
++            raise TypeError(description % instruction.__class__.__name__)
++
++        # Now the result of this function is the
++        # input of the next function in the chain.
++        self.end = result
++
++        return self
++
++
++# class Given:
++#     def __init__(self, obj):
++#         self.link = Link(obj)
++
++#     def __call__(self, instruction, *args, **kwargs):
++#         return self.link(instruction, *args, **kwargs)
++
++def Given(obj):
++    return Link(obj)
+ 
+ 
+ def given(obj):
+     """
+     Implement successive calls pattern. E.g.
+-    >>> given([1.5, 2.5, 3.9])(max)(round)(lamba x: x**10).end
+-    1048576
++
++    >>> given("abcd")(reversed)(list).end
++    ['d', 'c', 'b', 'a']
+     """
+     def link(instruction, *args, **kwargs):
+         """
+-        If `instruction` is a Callable, call them with `args`
+-        and `kwargs`. Consume `instruction` if it is a Generator.
++        If `instruction` is a Callable, call them with `args` and
++        `kwargs`. Store `instruction` in `ANS` if it is a Generator.
+         """
+-        nonlocal obj  # this statement let me modify the content of `obj`
++
++        # I use the `obj` closure to pass the output of the current
++        # function as input of the next function in the chain.
++        #
++        # The `nonlocal` statement allow me change the content of `obj`.
++        nonlocal obj
++
+         if callable(instruction):
+-            have_ans = False
++            has_ans_constant = False
+             if ANS in args:
+-                have_ans = True
++                has_ans_constant = True
+                 args = _replace_ans_in_args(obj, args)
+             if ANS in kwargs.values():
+-                have_ans = True
++                has_ans_constant = True
+                 kwargs = _replace_ans_in_kwargs(obj, kwargs)
+-            if have_ans:
++            if has_ans_constant:
+                 result = instruction(*args, **kwargs)
+             else:
+                 result = instruction(obj, *args, **kwargs)
+-        elif isinstance(instruction, GeneratorType):
++
++        elif isinstance(instruction, types.GeneratorType):
+             if args or kwargs:
+-                message = "Can not get arguments if you pass a generator "\
+-                          "at first (%d given)."
++                description = "Can not accept arguments if you pass "\
++                              "a generator at first (%d given)."
+                 count = len(args) + len(kwargs)
+-                raise TypeError(message % count)
++                raise TypeError(description % count)
+             if _have_nested_for_statement(instruction):
+-                raise SyntaxError("Multiple for statement are not supported.")
++                raise SyntaxError("Multiple for statement are not allowed.")
+             old_locals = instruction.gi_frame.f_locals
+             if isinstance(old_locals[".0"], _LastAnswer):
+                 result = _replace_dot_zero(instruction, iter(obj), old_locals)
+             else:
+-                message = "Can not iterate over '%s', 'ANS' constant only."
+-                raise ValueError(message % old_locals[".0"].__class__.__name__)
++                description = "Can not iterate over '%s', 'ANS' constant only."
++                class_name = old_locals[".0"].__class__.__name__
++                raise ValueError(description % class_name)
++
++        else:
++            description = "Expected 'callable' or 'generator'. Got '%s'"
++            raise TypeError(description % instruction.__class__.__name__)
++
++        # Store accumated operations result in the `.end` property.
++        link.end = result
++
++        # Now the result of this function is the
++        # input of the next function in the chain.
++        obj = result
++
++        return link
++    return link
++
++
++# Create a function that execute each instruction
++# in the `stack` with the given argument `obj`.
++def _function(stack):
++    def function(obj):
++        """
++        Execute each instruction in the chain with the given object.
++        """
++        operation = given(obj)
++        for instruction, args, kwargs in stack:
++            operation(instruction, *args, **kwargs)
++        return operation.end
++    return function
++
++
++class WithGivenObject:
++    def __init__(self, instruction, *args, **kwargs):
++        self.stack = []
++        self.append = self.stack.append
++        self.append((instruction, args, kwargs))
++
++    def __call__(self, instruction, *args, **kwargs):
++        """
++        Add operations to the stack of instructions.
++        """
++        self.append((instruction, args, kwargs))
++        return self
++
++    def __getattr__(self, attribute):
++        if attribute in self.__dict__.keys():
++            return self.__dict__[attribute]
+         else:
+-            message = "Expected 'callable' or 'generator'. Got '%s'"
+-            raise TypeError(message % instruction.__class__.__name__)
+-        # Store accumated operations result in the `.end` property. Also, the
+-        # `obj` closure of the next call is now the `result` of this call.
+-        link.end = obj = result
++            def function(obj):
++                """
++                Execute each instruction in the chain with the given object.
++                """
++                operation = Link(obj)
++                for instruction, args, kwargs in self.stack:
++                    operation(instruction, *args, **kwargs)
++                return operation.end
++            function.__qualname__ = attribute
++            function.__name__ = attribute
++            return function
++
++    @property
++    def end(self):
++        def function(obj):
++            """
++            Execute each instruction in the chain with the given object.
++            """
++            operation = Link(obj)
++            for instruction, args, kwargs in self.stack:
++                operation(instruction, *args, **kwargs)
++            return operation.end
++        return function
++
++
++def with_given_obj(instruction, *args, **kwargs):
++    """
++    Define a function by successive calls pattern.
++
++    >>> from operator import add, mul
++    >>> operation = with_given_obj(add, 2)(mul, 3).end
++    >>> operation(1)
++    9
++    """
++    stack = []
++    append = stack.append
++    append((instruction, args, kwargs))
++    def link(instruction, *args, **kwargs):
++        """
++        Add operations to the stack of instructions.
++        """
++        append((instruction, args, kwargs))
+         return link
++    link.end = _function(stack)
+     return link
+diff --git a/setup.py b/setup.py
+index 33a9163..c5c779c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,16 +1,18 @@
+-"""Insall script."""
++"""Installation script."""
+ 
+ from setuptools import setup
+ 
++
+ setup(
+     name="chain",
+-    version="0.1.1",
++    version="0.1.4",
+     py_modules=["chain"],
+     zip_safe=True,
+     author="Alan Cristhian",
+     author_email="alan.cristh@gmail.com",
+-    description="Data transformer by successive calls like pipes.",
++    description="""Data transformation and data analysis by successive
++                function calls and successive generator consumption""",
+     license="MIT",
+-    keywords="data structure",
++    keywords="data structure functional",
+     url="https://github.com/AlanCristhian/chain",
+ )
+diff --git a/test_chain.py b/test_chain.py
+index 300d5d1..67b52ae 100644
+--- a/test_chain.py
++++ b/test_chain.py
+@@ -1,13 +1,92 @@
+ import unittest
+ from itertools import product
++from operator import add
++
++from chain import given, ANS, with_given_obj, WithGivenObject, Given
+ 
+-from chain import given, ANS
+ 
+ 
+ class GivenSuite(unittest.TestCase):
+     def test_first_argument(self):
+-        message = R"Expected 'callable' or 'generator'. Got 'int'"
+-        with self.assertRaisesRegex(TypeError, message):
++        description = R"Expected 'callable' or 'generator'. Got 'int'"
++        with self.assertRaisesRegex(TypeError, description):
++            Given(9)(8).end
++
++    def test_single_function(self):
++        result = Given(15)(lambda x: x + 15).end
++        self.assertEqual(result, 30)
++
++    def test_two_functions(self):
++        result = Given(15)(lambda x: x + 15)(str).end
++        self.assertEqual(result, "30")
++
++    def test_positional_arguments(self):
++        result = Given("a.c")(str.replace, ".", "b").end
++        self.assertEqual(result, "abc")
++
++    def test_explicit_positinonal_argument(self):
++        result = Given(9)(lambda x, y: x/y, 0, ANS).end
++        self.assertEqual(result, 0)
++
++    def test_many_explicit_positinonal_argument(self):
++        result = Given(9)(lambda x, y, z: x*y*z, ANS, ANS, ANS).end
++        self.assertEqual(result, 729)
++
++    def test_keyword_arguments(self):
++        result = Given("a")(lambda x, y, z: x + y + z, y="b", z="c").end
++        self.assertEqual(result, "abc")
++
++    def test_explicit_keyword_arguments(self):
++        result = Given("z")(lambda x, y, z: x + y + z, x="x", y="y", z=ANS).end
++        self.assertEqual(result, "xyz")
++
++    def test_many_explicit_keyword_arguments(self):
++        result = Given("z")(lambda x, y, z: x + y + z, x=ANS, y=ANS, z=ANS).end
++        self.assertEqual(result, "zzz")
++
++    def test_positional_and_keyword_arguments(self):
++        result = Given(9)(lambda x, y: x + y, ANS, y=ANS).end
++        self.assertEqual(result, 18)
++
++    def test_single_generator(self):
++        result = Given([1, 2, 3])(i*2 for i in ANS)(list).end
++        self.assertEqual(result, [2, 4, 6])
++
++    def test_two_generators(self):
++        result = Given([1, 2, 3])(i*2 for i in ANS)(i*3 for i in ANS)(list).end
++        self.assertEqual(result, [6, 12, 18])
++
++    def test_many_for_statements(self):
++        description = R"Multiple for statement are not allowed."
++        with self.assertRaisesRegex(SyntaxError, description):
++            Given([1, 2, 3])(i*j for i in range(3) for j in ANS).end
++
++    def test_product_method(self):
++        expected = [(i, j) for i in "abc" for j in range(4)]
++        result = (Given("abc")
++                     (product, ANS, range(4))
++                     ((i, j) for i, j in ANS)
++                     (list)
++                 .end)
++        self.assertEqual(result, expected)
++
++    def test_ANS_in_second_for_iter_statement(self):
++        description = R"Can not iterate over 'tuple_iterator', "\
++                      "'ANS' constant only."
++        with self.assertRaisesRegex(ValueError, description):
++            Given("abc")(i for i in (1, 2)).end
++
++    def test_generator_followed_with_a_second_argument(self):
++        description = "Can not accept arguments if you pass "\
++                      "a generator at first \(3 given\)\."
++        with self.assertRaisesRegex(TypeError, description):
++            Given("abc")((i for i in ANS), 1, 2, z=3).end
++
++
++class GivenFunctionSuite(unittest.TestCase):
++    def test_first_argument(self):
++        description = R"Expected 'callable' or 'generator'. Got 'int'"
++        with self.assertRaisesRegex(TypeError, description):
+             given(9)(8).end
+ 
+     def test_single_function(self):
+@@ -55,8 +134,8 @@ class GivenSuite(unittest.TestCase):
+         self.assertEqual(result, [6, 12, 18])
+ 
+     def test_many_for_statements(self):
+-        message = R"Multiple for statement are not supported."
+-        with self.assertRaisesRegex(SyntaxError, message):
++        description = R"Multiple for statement are not allowed."
++        with self.assertRaisesRegex(SyntaxError, description):
+             given([1, 2, 3])(i*j for i in range(3) for j in ANS).end
+ 
+     def test_product_method(self):
+@@ -68,18 +147,58 @@ class GivenSuite(unittest.TestCase):
+                  .end)
+         self.assertEqual(result, expected)
+ 
+-    def test_LAST_in_second_for_iter_statement(self):
+-        message = R"Can not iterate over 'list_iterator', " \
+-                  "'ANS' constant only."
+-        with self.assertRaisesRegex(ValueError, message):
+-            given("abc")(i for i in [1, 2]).end
++    def test_ANS_in_second_for_iter_statement(self):
++        description = R"Can not iterate over 'tuple_iterator', "\
++                      "'ANS' constant only."
++        with self.assertRaisesRegex(ValueError, description):
++            given("abc")(i for i in (1, 2)).end
+ 
+     def test_generator_followed_with_a_second_argument(self):
+-        message = "Can not get arguments if you pass a generator "\
+-                  "at first \(3 given\)\."
+-        with self.assertRaisesRegex(TypeError, message):
++        description = "Can not accept arguments if you pass "\
++                      "a generator at first \(3 given\)\."
++        with self.assertRaisesRegex(TypeError, description):
+             given("abc")((i for i in ANS), 1, 2, z=3).end
+ 
+ 
++class FuntionDefinitionSuite(unittest.TestCase):
++    def test_functions(self):
++        operation = with_given_obj(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
++        self.assertEqual(operation(1), 21)
++
++    def test_generator_copy(self):
++        operation = (with_given_obj
++                        (n for n in ANS if n%2 == 0)
++                        (n + 2 for n in ANS)
++                        (list)
++                    .end)
++        self.assertEqual(operation([1, 2, 3, 4, 5, 6]), [4, 6, 8])
++        self.assertEqual(operation([7, 8, 9, 10, 11, 12]), [10, 12, 14])
++
++
++class WithGivenObjSuite(unittest.TestCase):
++    def test_functions(self):
++        operation = WithGivenObject(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
++        self.assertEqual(operation(1), 21)
++
++    def test_function_name(self):
++        operation = (WithGivenObject
++            (add, 2)
++            (add, 3)
++            (add, 4)
++            (add, 5)
++            (add, 6)
++        .operation)
++        self.assertEqual(operation.__qualname__, "operation")
++
++    def test_generator_copy(self):
++        operation = (WithGivenObject
++                        (n for n in ANS if n%2 == 0)
++                        (n + 2 for n in ANS)
++                        (list)
++                    .end)
++        self.assertEqual(operation([1, 2, 3, 4, 5, 6]), [4, 6, 8])
++        self.assertEqual(operation([7, 8, 9, 10, 11, 12]), [10, 12, 14])
++
++
+ if __name__ == '__main__':
+     unittest.main()
