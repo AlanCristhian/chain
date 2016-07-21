@@ -211,7 +211,7 @@ Return a class that implement the successive calls pattern.
 <Link object at 0x7fe2ab0b29d8>
 ```
 
-### class Link(instruction, *args, **kwargs) -> "Link"
+### class Link(instruction, \*args, \*\*kwargs) -> "Link"
 
 Implement the successive call pattern. Allways retunrn a `Link` object.
 
