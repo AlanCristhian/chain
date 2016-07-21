@@ -183,11 +183,11 @@ To do that you should use the `product` function of the `itertools` module.
 ### Reuse successive calls object
 
 In case that you want to reutilize a set of operations over an generic object,
-chain provide the `with_given_obj` function:
+`chain` provide the `ToTheObject` class:
 
 ```python
->>> from chain import with_given_obj, ANS
->>> add_3_to_even = (with_given_obj
+>>> from chain import ToTheObject, ANS
+>>> add_3_to_even = (ToTheObject
 ...                     (n for n in ANS if n%2 == 0)
 ...                     (n + 3 for n in ANS)
 ...                     (list)
@@ -196,92 +196,22 @@ chain provide the `with_given_obj` function:
 [5, 7, 9]
 ```
 
-All functions created with the `with_given_obj` function can only accept one
+All functions created with the `ToTheObject` class can only accept one
 postional argument.
 
--------------------------------------------------------------------------------
-
 ## API Documentation
 
-### function `given(obj: Any) -> given.<locals>.link`
-### function `given(obj):`
-
-Return a function that implement the successive calls pattern.
-
-```python
->>> operation = given("abcd")    # <-- here
->>> operation
-<function given.<locals>.link at 0x7fe2ab0b29d8>
-```
-
-### funcion `given.<locals>.link(instruction: Callable[...], *args: Tuple[Any], **kwargs: Dict[str, Any]) -> given.<locals>.link`
-### funcion `given.<locals>.link(instruction: Generator, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> given.<locals>.link`
-### funcion `given.<locals>.link(instruction, *args, **kwargs)`
-
-Implement the successive call patern.
-
-```python
->>> operation = given("abcd")
->>> operation
-<function given.<locals>.link at 0x7fe2ab0b29d8>
->>> operation(reversed)(list)    # <-- here
-<function given.<locals>.link at 0x7fe2a91b6f28>
-```
-
-### property `given.<locals>.link.end  #Type: Any`
-### property `given.<locals>.link.end`
-
-Store the result of the execution.
-
-```python
->>> operation = given("abcd")
->>> operation
-<function given.<locals>.link at 0x7fe2ab0b29d8>
->>> operation(reversed)(list).end    # <-- here
-['D', 'C', 'B', 'A']
-```
-
-### function `with_given_obj(instruction: Callable[...]) -> with_given_obj.<locals>.link`
-### function `with_given_obj(instruction: Generator) -> with_given_obj.<locals>.link`
-### function `with_given_obj(instruction)`
-
-Define a function by successive calls pattern.
-
-```python
->>> from operator import add, mul
->>> operation = with_given_obj(add, 2)(mul, 3)    # <-- here
-<function with_given_obj.<locals>.link at 0x7fe2a919c048>
-```
-
-### property `with_given_obj.<locals>.link.end  #Type: Callable[[Any], Any]`
-### property `with_given_obj.<locals>.link.end`
-
-Store the function created with `with_given_obj`.
-
-### constant `ANS  #Type: Iterable[Any]`
-### constant `ANS`
-
-This constant will be used to collect the output of the previous
-function or store the previous generator defined in the chain.
-
--------------------------------------------------------------------------------
-
-## API Documentation
-
-### class `Given(obj: Any) -> Link`
-### class `Given(obj)`
+### function `given(obj)-> "Link"`
 
 Return a class that implement the successive calls pattern.
 
 ```python
->>> link = Given("abcd")    # <-- here
+>>> link = given("abcd")
 >>> link
 <Link object at 0x7fe2ab0b29d8>
 ```
 
-### class `Link(instruction: Callable[...], *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Link`
-### class `Link(instruction: Generator, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Link`
-### class `Link(instruction, *args, **kwargs)`
+### class `Link(instruction, *args, **kwargs)-> "Link"`
 
 Implement the successive call pattern. Allways retunrn a `Link` object.
 
@@ -290,36 +220,41 @@ Implement the successive call pattern. Allways retunrn a `Link` object.
 <Link object at 0x7fe2a91b6f28>
 ```
 
-### property `Link.end  #Type: Any`
 ### property `Link.end`
 
 Store the result of the execution.
 
 ```python
 >>> link = given("abcd")(reversed)(list)
->>> link.end    # <-- here
+>>> link.end
 ['D', 'C', 'B', 'A']
 ```
 
-### function `WithGivenObject(instruction: Callable[...]) -> WithGivenObject`
-### function `WithGivenObject(instruction: Generator) -> WithGivenObject`
-### function `WithGivenObject(instruction)`
+### class `ToTheObject(instruction)-> "ToTheObject"`
 
-Define a function by successive calls pattern.
+Store a list of operations that will be performed with an object.
 
 ```python
 >>> from operator import add, mul
->>> operation = WithGivenObject(add, 2)(mul, 3)    # <-- here
-<WithGivenObject object at 0x7fe2a919c048>
+>>> ToTheObject(add, 2)(mul, 3)
+<ToTheObject object at 0x7fe2a919c048>
 ```
 
-### property `WithGivenObject.end  #Type: Callable[[Any], Any]`
-### property `WithGivenObject.end`
+### property `ToTheObject.end`
 
-Store the function created with `WithGivenObject`.
+Store the function created with `ToTheObject`.
 
-### constant `ANS  #Type: Iterable[Any]`
+```python
+>>> from operator import add, mul
+>>> operation = ToTheObject(add, 2)(mul, 3).end
+>>> operation
+<function operation at 0x7f83828a508>
+>>> operation(1)
+9
+```
+
 ### constant `ANS`
 
-This constant will be used to collect the output of the previous
-function or store the previous generator defined in the chain.
+This constant should used to collect the output of the previous
+function or store the previous generator defined in the chain. See the tutorial
+for more info.
