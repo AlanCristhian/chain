@@ -18,7 +18,7 @@ import types
 import inspect
 
 
-__all__ = ["given", "ANS", "ToTheObject"]
+__all__ = ["given", "ANS", "WithTheObj"]
 
 
 # In CPython, all generator expressions stores the iterable of the first
@@ -191,12 +191,12 @@ class Function:
             return super().__repr__()
 
 
-class ToTheObject:
+class WithTheObj:
     """
     Creates function using the successive function call pattern.
 
     >>> from operator import add, mul
-    >>> operation = ToTheObject(add, 2)(mul, 3).end
+    >>> operation = WithTheObj(add, 2)(mul, 3).end
     >>> operation
     <function operation at 0x7f83828a508>
     >>> operation(1)

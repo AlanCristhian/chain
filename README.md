@@ -183,11 +183,11 @@ To do that you should use the `product` function of the `itertools` module.
 ### Reuse successive calls object
 
 In case that you want to reutilize a set of operations over an generic object,
-`chain` provide the `ToTheObject` class:
+`chain` provide the `WithTheObj` class:
 
 ```python
->>> from chain import ToTheObject, ANS
->>> add_3_to_even = (ToTheObject
+>>> from chain import WithTheObj, ANS
+>>> add_3_to_even = (WithTheObj
 ...                     (n for n in ANS if n%2 == 0)
 ...                     (n + 3 for n in ANS)
 ...                     (list)
@@ -196,12 +196,12 @@ In case that you want to reutilize a set of operations over an generic object,
 [5, 7, 9]
 ```
 
-All functions created with the `ToTheObject` class can only accept one
+All functions created with the `WithTheObj` class can only accept one
 postional argument.
 
 ## API Documentation
 
-### function `given(obj)-> "Link"`
+### function given(obj) -> "Link"
 
 Return a class that implement the successive calls pattern.
 
@@ -211,7 +211,7 @@ Return a class that implement the successive calls pattern.
 <Link object at 0x7fe2ab0b29d8>
 ```
 
-### class `Link(instruction, *args, **kwargs)-> "Link"`
+### class Link(instruction, *args, **kwargs) -> "Link"
 
 Implement the successive call pattern. Allways retunrn a `Link` object.
 
@@ -220,7 +220,7 @@ Implement the successive call pattern. Allways retunrn a `Link` object.
 <Link object at 0x7fe2a91b6f28>
 ```
 
-### property `Link.end`
+### property Link.end
 
 Store the result of the execution.
 
@@ -230,30 +230,30 @@ Store the result of the execution.
 ['D', 'C', 'B', 'A']
 ```
 
-### class `ToTheObject(instruction)-> "ToTheObject"`
+### class WithTheObj(instruction) -> "WithTheObj"
 
 Store a list of operations that will be performed with an object.
 
 ```python
 >>> from operator import add, mul
->>> ToTheObject(add, 2)(mul, 3)
-<ToTheObject object at 0x7fe2a919c048>
+>>> WithTheObj(add, 2)(mul, 3)
+<WithTheObj object at 0x7fe2a919c048>
 ```
 
-### property `ToTheObject.end`
+### property WithTheObj.end
 
-Store the function created with `ToTheObject`.
+Store the function created with `WithTheObj`.
 
 ```python
 >>> from operator import add, mul
->>> operation = ToTheObject(add, 2)(mul, 3).end
+>>> operation = WithTheObj(add, 2)(mul, 3).end
 >>> operation
 <function operation at 0x7f83828a508>
 >>> operation(1)
 9
 ```
 
-### constant `ANS`
+### constant ANS
 
 This constant should used to collect the output of the previous
 function or store the previous generator defined in the chain. See the tutorial

@@ -2,7 +2,7 @@ import unittest
 from itertools import product
 from operator import add
 
-from chain import given, ANS, ToTheObject
+from chain import given, ANS, WithTheObj
 
 
 class GivenSuite(unittest.TestCase):
@@ -84,16 +84,16 @@ class GivenSuite(unittest.TestCase):
 
 class ToTheGivenObjSuite(unittest.TestCase):
     def test_functions(self):
-        operation = ToTheObject(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
+        operation = WithTheObj(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
         self.assertEqual(operation(1), 21)
 
     def test_function_name(self):
-        operation = ToTheObject(add, 2).end
+        operation = WithTheObj(add, 2).end
         self.assertEqual(operation.__name__, "operation")
         self.assertEqual(operation.__qualname__, "chain.Function")
 
     def test_generator_copy(self):
-        operation = (ToTheObject
+        operation = (WithTheObj
                         (n for n in ANS if n%2 == 0)
                         (n + 2 for n in ANS)
                         (list)
