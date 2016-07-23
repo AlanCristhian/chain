@@ -183,11 +183,11 @@ To do that you should use the `product` function of the `itertools` module.
 ### Reuse successive calls object
 
 In case that you want to reutilize a set of operations over an generic object,
-`chain` provide the `WithTheObj` class:
+`chain` provide the `WithGiven` class:
 
 ```python
->>> from chain import WithTheObj, ANS
->>> add_3_to_even = (WithTheObj
+>>> from chain import WithGiven, ANS
+>>> add_3_to_even = (WithGiven
 ...                     (n for n in ANS if n%2 == 0)
 ...                     (n + 3 for n in ANS)
 ...                     (list)
@@ -196,7 +196,7 @@ In case that you want to reutilize a set of operations over an generic object,
 [5, 7, 9]
 ```
 
-All functions created with the `WithTheObj` class can only accept one
+All functions created with the `WithGiven` class can only accept one
 postional argument.
 
 ## API Documentation
@@ -230,23 +230,23 @@ Store the result of the execution.
 ['D', 'C', 'B', 'A']
 ```
 
-### class WithTheObj(instruction) -> "WithTheObj"
+### class WithGiven(instruction) -> "WithGiven"
 
 Store a list of operations that will be performed with an object.
 
 ```python
 >>> from operator import add, mul
->>> WithTheObj(add, 2)(mul, 3)
-<WithTheObj object at 0x7fe2a919c048>
+>>> WithGiven(add, 2)(mul, 3)
+<WithGiven object at 0x7fe2a919c048>
 ```
 
-### property WithTheObj.end
+### property WithGiven.end
 
-Store the function created with `WithTheObj`.
+Store the function created with `WithGiven`.
 
 ```python
 >>> from operator import add, mul
->>> operation = WithTheObj(add, 2)(mul, 3).end
+>>> operation = WithGiven(add, 2)(mul, 3).end
 >>> operation
 <function operation at 0x7f83828a508>
 >>> operation(1)
