@@ -52,17 +52,17 @@ Each function sourounded by parenthesis is called with the result of the
 precedent function as argument. The below construction is equivalent to.
 
 ```python
->>> last = [1.5, 2.5, 3.9]
->>> last = max(last)
->>> last = round(last)
->>> (lambda x: x + 2)(last)
+>>> _ = [1.5, 2.5, 3.9]
+>>> _ = max(_)
+>>> _ = round(_)
+>>> (lambda x: x + 2)(_)
 6
 ```
 
 ### Use functions with more than one argument
 
 You can pass arguments to each function. The first argument of the succesive
-call should be a *Callable* or *Generator*. The *Callable* passed as argument
+call should be a *Callable*. The *Callable* passed as argument
 is executed whit the output of the previous call as first argument and the
 passed argument as second. E.g
 
@@ -72,28 +72,29 @@ passed argument as second. E.g
 30
 ```
 
-The *lambda function* assign the `10` value to the `x` and `20` to `y`. You can
+The *lambda function* assign `10` value to `x` and `20` to `y`. You can
 do the same with as many arguments as you want:
 
 ```python
->>> given(10)(lambda x, y, z: x + y + z, 20, 30).end
+>>> add_3 = lambda x, y, z: x + y + z
+>>> given(10)(add_3, 20, 30).end
 60
 ```
 
 ### The `ANS` constant
 
-In all previous examples the *lambda function* is executed with object returned
-by the previous call as firs argument. What if you want to pass the returned
-object as second, third or any order? You can use the `ANS` constant:
+In all previous examples the *lambda function* is executed with the object
+returned by the previous call as firs argument. What if you want to pass the
+returned object as second, third or any order? You can use the `ANS` constant:
 
 ```python
 >>> from chain import given, ANS
->>> given('Three')(lambda a, b, c: a + b + c, 'One', 'Two', ANS).end
+>>> given('Three')(lambda x, y, z: x + y + z, 'One', 'Two', ANS).end
 'OneTwoThree'
 ```
 
-The `ANS` constant is like the ```ans``` key in scientific calculators. `ANS`
-is by "last **ans**wer". They stores the output of the previous operation.
+The `ANS` constant is like the ```ans``` key in scientific calculators. They
+stores the output of the previous operation.
 
 You can use the `ANS` constant as many times as you want:
 
@@ -102,17 +103,14 @@ You can use the `ANS` constant as many times as you want:
 'ooo'
 ```
 
-*Keyword arguments* are great because you do not need to remember the argument
-order. So, *keyword arguments* are allowed:
+*Keyword arguments* are allowed:
 
 ```python
 >>> given("a")(lambda x, y, z: x + y + z, y="b", z="c").end
 'abc'
->>> given("z")(lambda x, y, z: x + y + z, x="x", y="y", z=ANS).end
+>>> given("c")(lambda x, y, z: x + y + z, x="a", y="b", z=ANS).end
 'xyz'
 ```
-
-You can use `ANS` if you want to be more explicit
 
 ### Successive generator consumption
 
@@ -128,7 +126,7 @@ those *generators* successively.
 [6, 12, 18]
 ```
 
-The `given` object can only consume those generators that iterate over the
+The `given` function can only consume those generators that iterate over the
 `ANS` constant:
 
 ```python
@@ -143,7 +141,7 @@ What if you want to do some like:
 ...     ((i, j) for i, j in enumerate(ANS))
 ...     (list)
 ... .end)
-ValueError: Can not iterate over 'range', 'ANS' constant only.
+ValueError: Can not iterate over 'enumerate', 'ANS' constant only.
 ```
 
 To do that you must call the `enumerate` function first.
@@ -179,31 +177,72 @@ To do that you should use the `product` function of the `itertools` module.
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
 
-
 ### Reuse successive calls object
 
 In case that you want to reutilize a set of operations over an generic object,
-`chain` provide the `WithGiven` class:
+just pass the `...` constant as argument of the `given` function:
 
 ```python
->>> from chain import WithGiven, ANS
->>> add_3_to_even = (WithGiven
-...                     (n for n in ANS if n%2 == 0)
-...                     (n + 3 for n in ANS)
-...                     (list)
-...                 .end)
+>>> from chain import given, ANS
+>>> add_3_to_even = (given(...)
+...     (n for n in ANS if n%2 == 0)
+...     (n + 3 for n in ANS)
+...     (list)
+... .end)
 >>> add_3_to_even([1, 2, 3, 4, 5, 6])
 [5, 7, 9]
 ```
 
-All functions created with the `WithGiven` class can only accept one
-postional argument.
+### Handle many objects with the nmspc class
+
+Sometimes you want to pass more than one argument to the next function. In that
+cases you can use a list and acces to each object by index:
+
+```python
+>>> from chain import given, ANS
+>>> (given([1, 2, 3])
+...     (lambda x: x[0] + x[1] + x[2])
+... .end)
+>>> 6
+```
+
+Or you can use a dict.
+
+```python
+>>> from chain import given, ANS
+>>> (given({'a': 1, 'b': 2, 'c': 3})
+...     (lambda x: x['a'] + x['b'] + x['c'])
+... .end)
+>>> 6
+```
+
+Bot ways looks unintelligible. For this situation you can use the `nmspc` class
+that is a tiny wrapper of the `types.SimpleNamespace` class of the standar
+library.
+
+```python
+>>> from chain import given, ANS, nmspc
+>>> (given(nmspc(a=1, b=2, c=3))
+...     (lambda x: x.a + x.b + x.c)
+... .end)
+>>> 6
+```
 
 ## API Documentation
 
-### function given(obj) -> "Link"
+### function given(obj=...) -> Instruction
 
-Return a class that implement the successive calls pattern.
+Returns the `Instruction` *class* if the `obj` argument is the `...` constant.
+
+```python
+>>> from operator import add, mul
+>>> given(...)
+<class 'chain.Instruction' at 0x11672c8>
+```
+
+### function given(obj) -> Link
+
+Returns a `Link` instance that implement the successive calls pattern.
 
 ```python
 >>> link = given("abcd")
@@ -211,42 +250,56 @@ Return a class that implement the successive calls pattern.
 <Link object at 0x7fe2ab0b29d8>
 ```
 
-### class Link(instruction, \*args, \*\*kwargs) -> "Link"
+### class Link(instruction, \*args, \*\*kwargs) -> Link
 
-Implement the successive call pattern. Allways retunrn a `Link` object.
+Implements the successive call pattern. Allways returns itself.
 
 ```python
->>> link = given("abcd")(reversed)(list)
+>>> link = given("abcd")
+>>> link(reversed)
 <Link object at 0x7fe2a91b6f28>
+>>> link(list) is link
+True
 ```
 
 ### property Link.end
 
-Store the result of the execution.
+Stores the result of the execution.
 
 ```python
 >>> link = given("abcd")(reversed)(list)
+>>> link
+<Link object at 0x7fe2a91b6f28>
 >>> link.end
 ['D', 'C', 'B', 'A']
 ```
 
-### class WithGiven(instruction) -> "WithGiven"
+### class Instruction(instruction) -> Instruction
 
-Store a list of operations that will be performed with an object.
+Stores a list of operations that will be performed with an object.
 
 ```python
 >>> from operator import add, mul
->>> WithGiven(add, 2)(mul, 3)
-<WithGiven object at 0x7fe2a919c048>
+>>> Instruction(add, 2)(mul, 3)
+<Instruction object at 0x7fe2a919c048>
 ```
 
-### property WithGiven.end
-
-Store the function created with `WithGiven`.
+The `Instruction` callable allways returns itself.
 
 ```python
 >>> from operator import add, mul
->>> operation = WithGiven(add, 2)(mul, 3).end
+>>> instr = Instruction(add, 2)
+>>> instr(mul, 3) is instr
+True
+```
+
+### property Instruction.end
+
+Store the function created with `Instruction`.
+
+```python
+>>> from operator import add, mul
+>>> operation = Instruction(add, 2)(mul, 3).end
 >>> operation
 <function operation at 0x7f83828a508>
 >>> operation(1)
@@ -255,6 +308,23 @@ Store the function created with `WithGiven`.
 
 ### constant ANS
 
-This constant should used to collect the output of the previous
-function or store the previous generator defined in the chain. See the tutorial
-for more info.
+This constant should be used to collect the output of the previous function or
+store the previous generator defined in the chain. See the tutorial for more
+info.
+
+### class nmspc
+
+A simple attribute-based namespace.
+
+```python
+>>> from chain import nmspc
+>>> x = nmspc(a=1, b=22, c=333)
+>>> x
+nmspc(a=1, b=22, c=333)
+>>> x.a
+1
+>>> x.b
+22
+>>> x.c
+333
+```

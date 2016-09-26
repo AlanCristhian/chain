@@ -2,7 +2,13 @@ import unittest
 from itertools import product
 from operator import add
 
-from chain import given, ANS, WithGiven
+
+from chain import given, ANS, Instruction
+
+
+class LastAnswerSuite(unittest.TestCase):
+    def test_ANS_repr(self):
+        self.assertEqual(repr(ANS), "ANS")
 
 
 class GivenSuite(unittest.TestCase):
@@ -82,25 +88,20 @@ class GivenSuite(unittest.TestCase):
             given("abc")((i for i in ANS), 1, 2, z=3).end
 
 
-class ToTheGivenObjSuite(unittest.TestCase):
+class InstructionSuite(unittest.TestCase):
     def test_functions(self):
-        operation = WithGiven(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
+        operation = given(...)(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
         self.assertEqual(operation(1), 21)
 
     def test_function_name(self):
-        operation = WithGiven(add, 2).end
+        operation = given(...)(add, 2).end
         self.assertEqual(operation.__name__, "operation")
         self.assertEqual(operation.__qualname__, "chain.Function")
-
-    def test_generator_copy(self):
-        operation = (WithGiven
-                        (n for n in ANS if n%2 == 0)
-                        (n + 2 for n in ANS)
-                        (list)
-                    .end)
-        self.assertEqual(operation([1, 2, 3, 4, 5, 6]), [4, 6, 8])
-        self.assertEqual(operation([7, 8, 9, 10, 11, 12]), [10, 12, 14])
+        self.assertIn("<function operation at ", repr(operation))
 
 
 if __name__ == '__main__':
+    identity = given(...)(lambda: ...).end
+    assert "<function identity at " in repr(identity)
     unittest.main()
+

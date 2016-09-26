@@ -1,5 +1,4 @@
-"""
-Chain is a tiny tool for performing data transformation and data analysis
+"""Chain is a tiny tool for performing data transformation and data analysis
 by successive function calls and successive generator consumption. For example:
 
 >>> from chain import given, ANS
@@ -13,14 +12,16 @@ to uppercase. Then calls the 'list' function whit the generator. Finally,
 lookups the '.end' property that stores the result of the execution.
 """
 
+
 import collections.abc
 import dis
 import functools
-import inspect
 import types
 
+import name
 
-__all__ = ["LastAnswer", "ANS", "Link", "given", "Function", "WithGiven"]
+
+__all__ = ["ANS", "Link", "given", "Function", "Instruction", "nmspc"]
 
 
 # In CPython, all generator expressions stores the iterable of the first
@@ -28,84 +29,74 @@ __all__ = ["LastAnswer", "ANS", "Link", "given", "Function", "WithGiven"]
 #
 # This function returns a copy of the `generator` argument and
 # replaces their "dot zero" constant with the `iterable` object.
-def _replace_dot_zero(generator, iterable, old_locals):
+def _fix_dot_zero(generator, iterable, old_locals):
     generator_function = types.FunctionType(
         generator.gi_code,
         generator.gi_frame.f_globals,
-        generator.__name__
-    )
+        generator.__name__)
 
     # Creates a new `dict` because `old_locals` is inmutable.
     new_locals = {**old_locals, ".0": iterable}
 
     # Creates and returns a new "generator object".
-    generator_object = generator_function(**new_locals)
-    return generator_object
+    return generator_function(**new_locals)
 
 
 # Check if the generator have more than one "for statement".
-def _have_nested_for_statement(generator) -> bool:
+def _have_nested_for_statement(generator):
     matched = [True for instruction in dis.get_instructions(generator)
                if instruction.opname == "FOR_ITER"]
     return True if len(matched) > 1 else False
 
 
 # Replace each `ANS` item in the tuple with the given `obj`
-def _replace_ans_in_args(obj, args: tuple) -> bool:
+def _replace_ans_in_args(obj, args):
     return (obj if item is ANS else item for item in args)
 
 
 # Replace each `ANS` value in the dict with the given `obj`
-def _replace_ans_in_kwargs(obj, kwargs: dict) -> dict:
+def _replace_ans_in_kwargs(obj, kwargs):
     return {key: obj if value is ANS else value
             for (key, value) in kwargs.items()}
 
 
 # Transforms a method into a single-dispatch generic method.
-def _single_dispatch_method(function):
-    dispatcher = functools.singledispatch(function)
-    def wrapper(*args, **kw):
-        return dispatcher.dispatch(args[1].__class__)(*args, **kw)
+def _single_dispatch_method(method):
+    dispatcher = functools.singledispatch(method)
+
+    def wrapper(*args, **kwargs):
+        return dispatcher.dispatch(args[1].__class__)(*args, **kwargs)
+
     wrapper.register = dispatcher.register
-    functools.update_wrapper(wrapper, function)
+    functools.update_wrapper(wrapper, method)
     return wrapper
-
-
-# Yields all global variables in the higher (calling) frames
-def _get_outer_globals(frame):
-    while frame:
-        yield frame.f_globals
-        frame = frame.f_back
-
-
-# Yields all locals variables in the higher (calling) frames
-def _get_outer_locals(frame):
-    while frame:
-        yield frame.f_locals
-        frame = frame.f_back
 
 
 # Implements the minimun protocol to have an iterable.
 class LastAnswer:
-    """
-    This constant will be used to collect the output of the previous
+    """This constant will be used to collect the output of the previous
     function or store the previous generator defined in the chain.
+
     """
     def __iter__(self):
+
         # Returns itself because I want to check identity later.
         return self
 
     def __next__(self):
         pass
 
+    def __repr__(self):
+        return "ANS"
+
 
 ANS = LastAnswer()
 
 
 class Link:
-    """
-    If `instruction` is a Callable, call them with `args` and
+    """If `instruction` is a Callable, call them with `args` and
     `kwargs`. Store `instruction` in `ANS` if it is a Generator.
+
     """
     def __init__(self, obj):
         self.end = obj
@@ -146,11 +137,11 @@ class Link:
         if _have_nested_for_statement(generator):
             raise SyntaxError("Multiple for statement are not allowed.")
         old_locals = generator.gi_frame.f_locals
-        if isinstance(old_locals[".0"], LastAnswer):
+        if old_locals[".0"] is ANS:
 
-            # Now the result generator is the input
+            # Now the fixed generator is the input
             # of the next instruction in the chain.
-            self.end = _replace_dot_zero(generator, iter(self.end), old_locals)
+            self.end = _fix_dot_zero(generator, iter(self.end), old_locals)
         else:
             description = "Can not iterate over '%s', 'ANS' constant only."
             class_name = old_locals[".0"].__class__.__name__
@@ -158,90 +149,78 @@ class Link:
         return self
 
 
-def given(obj) -> Link:
-    """
-    Return a class that implement the successive calls pattern.
-    """
+@functools.singledispatch
+def given(obj):
+    """Return a object that implement the successive calls pattern."""
     return Link(obj)
 
 
-class Function:
+@given.register(type(Ellipsis))
+def _(obj):
+    """Return a class that creates function using
+    the successive function call pattern.
+
     """
-    A class that behaves like a function. and stores
-    the name and quality name of the instance.
-    """
+    return Instruction
+
+
+class Function(name.AutoName):
+    """A class that behaves like a function."""
     def __init__(self, stack):
-        self.stack = stack
-        self._name = None
+        super().__init__()
+        self._stack = stack
         self.__qualname__ = "chain.Function"
 
     def __call__(self, obj):
         operation = Link(obj)
-        for instruction, args, kwargs in self.stack:
+        for instruction, args, kwargs in self._stack:
             operation(instruction, *args, **kwargs)
         return operation.end
 
-    # Find the name of the current object in the given scope
-    def _find_name_in_scope(self, scope):
-        for variables in scope:
-            for name, value in variables.items():
-                if value is self:
-                    return name
-
-    # find the name of the current object
-    def _find_name(self, current_frame):
-        outer_locals = _get_outer_locals(current_frame)
-        name = self._find_name_in_scope(outer_locals)
-        if name is None:
-            outer_globals = _get_outer_globals(current_frame)
-            name = self._find_name_in_scope(outer_globals)
-        if name is None:
-            return self.__qualname__
-        else:
-            return name
-
     @property
     def __name__(self):
-        if self._name is None:
-            upper_frame = inspect.currentframe().f_back
-            self._name = self._find_name(upper_frame)
-        return self._name
+        return self.__assigned_name__
 
     def __repr__(self):
-        if self._name is None:
-            upper_frame = inspect.currentframe().f_back
-            self._name = self._find_name(upper_frame)
-        if self._name == self.__qualname__:
-            return "<%s object at 0x%02x>" % (self._name, hash(self))
-        else:
-            return "<function %s at 0x%02x>" % (self._name, hash(self))
+        return "<function %s at %#02x>" % (self.__assigned_name__, hash(self))
 
 
-class WithGiven:
-    """
-    Creates function using the successive function call pattern.
+class Instruction:
+    """Creates a function using the successive function call pattern.
 
     >>> from operator import add, mul
-    >>> operation = WithGiven(add, 2)(mul, 3).end
+    >>> operation = Instruction(add, 2)(mul, 3).end
     >>> operation
     <function operation at 0x7f83828a508>
     >>> operation(1)
     9
+
     """
     def __init__(self, instruction, *args, **kwargs):
-        self.stack = []
-        self.stack.append((instruction, args, kwargs))
+        self._stack = [(instruction, args, kwargs)]
 
     def __call__(self, instruction, *args, **kwargs):
-        """
-        Adds operations to the stack of instructions.
-        """
-        self.stack.append((instruction, args, kwargs))
+        """Adds operations to the stack of instructions."""
+        self._stack.append((instruction, args, kwargs))
         return self
 
     @property
     def end(self):
-        """
-        Creates and returns the function.
-        """
-        return Function(self.stack)
+        """Creates and returns the function."""
+        return Function(self._stack)
+
+
+class nmspc(types.SimpleNamespace):
+    """A simple attribute-based namespace.
+    >>> from chain import nmspc
+    >>> n = nmspc(a=1, b=22, c=333)
+    >>> n
+    nmspc(a=111, b=222, c=333)
+    >>> n.a
+    111
+    >>> n.b
+    222
+    >>> n.c
+    333
+
+    """
