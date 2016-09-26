@@ -228,6 +228,19 @@ library.
 >>> 6
 ```
 
+### Unpack the last answer
+
+The same problem can be solved with the `UNPACK` constant:
+
+```python
+>>> sum_list = (given([1, 2, 3])
+...     (UNPACK)
+...     (lambda x, y, z: x + y + z)
+... .end)
+>>> sum_list
+6
+```
+
 ## API Documentation
 
 ### function given(obj=...) -> Instruction
@@ -250,7 +263,7 @@ Returns a `Link` instance that implement the successive calls pattern.
 <Link object at 0x7fe2ab0b29d8>
 ```
 
-### class Link(instruction, \*args, \*\*kwargs) -> Link
+### class Link(instruction, \*args, \*\*kwargs)
 
 Implements the successive call pattern. Allways returns itself.
 
@@ -274,7 +287,7 @@ Stores the result of the execution.
 ['D', 'C', 'B', 'A']
 ```
 
-### class Instruction(instruction) -> Instruction
+### class Instruction(instruction)
 
 Stores a list of operations that will be performed with an object.
 
@@ -312,7 +325,12 @@ This constant should be used to collect the output of the previous function or
 store the previous generator defined in the chain. See the tutorial for more
 info.
 
-### class nmspc
+### constant UNPACK
+
+Indicates that the next funciton in the chain should unpack the result of the
+previous function in the chain.
+
+### class nmspc(\*\*kwargs)
 
 A simple attribute-based namespace.
 

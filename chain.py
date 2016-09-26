@@ -21,7 +21,8 @@ import types
 import name
 
 
-__all__ = ["ANS", "Link", "given", "Function", "Instruction", "nmspc"]
+__all__ = ["ANS", "Link", "given", "Function", "Instruction", "nmspc",
+           "UNPACK"]
 
 
 # In CPython, all generator expressions stores the iterable of the first
@@ -72,8 +73,13 @@ def _single_dispatch_method(method):
     return wrapper
 
 
+class _Protocol(name.AutoName):
+    def __repr__(self):
+        return "<protocol %s at %#02x>" % (self.__assigned_name__, hash(self))
+
+
 # Implements the minimun protocol to have an iterable.
-class LastAnswer:
+class _LastAnswer(_Protocol):
     """This constant will be used to collect the output of the previous
     function or store the previous generator defined in the chain.
 
@@ -86,11 +92,17 @@ class LastAnswer:
     def __next__(self):
         pass
 
-    def __repr__(self):
-        return "ANS"
+
+ANS = _LastAnswer()
 
 
-ANS = LastAnswer()
+class _Unpack(_Protocol):
+    """ Indicates that the next funciton in the chain should
+    unpack the result of the previous function in the chain.
+    """
+
+
+UNPACK = _Unpack()
 
 
 class Link:
@@ -100,6 +112,7 @@ class Link:
     """
     def __init__(self, obj):
         self.end = obj
+        self._should_unpack = False
 
     # Raises an error if the instruction is not a callable or generator.
     @_single_dispatch_method
@@ -110,6 +123,16 @@ class Link:
     # Evaluates the function instruction.
     @__call__.register(collections.abc.Callable)
     def _(self, function, *args, **kwargs):
+        if self._should_unpack:
+            if isinstance(self.end, collections.abc.Mapping):
+                self.end = function(**self.end)
+            elif isinstance(self.end, collections.abc.Sequence):
+                self.end = function(*self.end)
+            else:
+                self.end = function(self.end)
+            self._should_unpack = False
+            return self
+
         has_ans_constant = False
         if ANS in args:
             has_ans_constant = True
@@ -146,6 +169,12 @@ class Link:
             description = "Can not iterate over '%s', 'ANS' constant only."
             class_name = old_locals[".0"].__class__.__name__
             raise ValueError(description % class_name)
+        return self
+
+    # Set the unpack flag to true
+    @__call__.register(_Unpack)
+    def _(self, obj):
+        self._should_unpack = True
         return self
 
 
