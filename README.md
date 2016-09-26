@@ -19,6 +19,7 @@ lookups the `.end` property that stores the result of the execution.
 ## Installation
 
 ```shell
+$ pip install git+https://github.com/AlanCristhian/name.git
 $ pip install git+https://github.com/AlanCristhian/chain.git
 ```
 
@@ -233,6 +234,7 @@ library.
 The same problem can be solved with the `UNPACK` constant:
 
 ```python
+>>> from chain import given, UNPACK
 >>> sum_list = (given([1, 2, 3])
 ...     (UNPACK)
 ...     (lambda x, y, z: x + y + z)

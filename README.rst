@@ -20,7 +20,10 @@ Finally, lookups the ``.end`` property that stores the result of the execution.
 Installation
 ------------
 
-  ``$ pip install git+https://github.com/AlanCristhian/chain.git``
+ ::
+
+  $ pip install git+https://github.com/AlanCristhian/name.git
+  $ pip install git+https://github.com/AlanCristhian/chain.git
 
 --------
 Tutorial
@@ -208,6 +211,7 @@ Unpack the last answer
 
 The same problem can be solved with the ``UNPACK`` constant: ::
 
+    >>> from chain import given, UNPACK
     >>> sum_list = (given([1, 2, 3])
     ...     (UNPACK)
     ...     (lambda x, y, z: x + y + z)
