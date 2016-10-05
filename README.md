@@ -178,6 +178,15 @@ To do that you should use the `product` function of the `itertools` module.
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
 
+### Reuse the methods of the given object
+
+You can use the methods in the given object:
+
+```python
+>>> given("abc").upper().end
+'ABC'
+```
+
 ### Reuse successive calls object
 
 In case that you want to reutilize a set of operations over an generic object,

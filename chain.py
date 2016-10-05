@@ -66,7 +66,11 @@ def _single_dispatch_method(method):
     dispatcher = functools.singledispatch(method)
 
     def wrapper(*args, **kwargs):
-        return dispatcher.dispatch(args[1].__class__)(*args, **kwargs)
+        if len(args) > 1:
+            return dispatcher.dispatch(args[1].__class__)(*args, **kwargs)
+        else:
+            # return dispatcher.dispatch(args[0].__class__)(*args, **kwargs)
+            return args[0]
 
     wrapper.register = dispatcher.register
     functools.update_wrapper(wrapper, method)
@@ -113,6 +117,7 @@ class Link:
     def __init__(self, obj):
         self.end = obj
         self._should_unpack = False
+        self._attributes = dir(self)
 
     # Raises an error if the instruction is not a callable or generator.
     @_single_dispatch_method
@@ -176,6 +181,14 @@ class Link:
     def _(self, obj):
         self._should_unpack = True
         return self
+
+    def __getattr__(self, attribute):
+        method = getattr(self.end, attribute)
+        def wrapper(*args, **kwargs):
+            self.end = method(*args, **kwargs)
+            return self
+        functools.update_wrapper(wrapper, method)
+        return wrapper
 
 
 @functools.singledispatch

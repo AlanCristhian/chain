@@ -136,5 +136,28 @@ class UnpackSuite(unittest.TestCase):
         self.assertEqual(vector, [1, 2, 1, 2])
 
 
+class MethodBindingSuite(unittest.TestCase):
+    def test_method_binding(self):
+        result = (
+            given("abcdefghi")
+            .upper()
+            .replace("E", " ")
+            (c.lower() for c in ANS)
+            (list)
+            ("".join)
+        ).end
+        self.assertEqual(result, "abcd fghi")
+
+    def test_unexistent_method(self):
+        message = "'str' object has no attribute 'thing'"
+        with self.assertRaisesRegex(AttributeError, message):
+            given("a").thing()
+
+    def test_not_callable_attribute(self):
+        message = "'int' object is not callable"
+        with self.assertRaisesRegex(TypeError, message):
+            given(1).imag()
+
+
 if __name__ == '__main__':
     unittest.main()
