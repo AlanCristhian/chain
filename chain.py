@@ -69,7 +69,8 @@ def _single_dispatch_method(method):
         if len(args) > 1:
             return dispatcher.dispatch(args[1].__class__)(*args, **kwargs)
         else:
-            # return dispatcher.dispatch(args[0].__class__)(*args, **kwargs)
+            # An args tuple with only one element means that the user
+            # is trying to lookup a property of the last answer.
             return args[0]
 
     wrapper.register = dispatcher.register
@@ -77,6 +78,7 @@ def _single_dispatch_method(method):
     return wrapper
 
 
+# A base class for all constants of this module
 class _Protocol(name.AutoName):
     def __repr__(self):
         return "<protocol %s at %#02x>" % (self.__assigned_name__, hash(self))
@@ -116,7 +118,6 @@ class Link:
     """
     def __init__(self, obj):
         self.end = obj
-        self._should_unpack = False
         self._attributes = dir(self)
 
     # Raises an error if the instruction is not a callable or generator.
@@ -128,16 +129,6 @@ class Link:
     # Evaluates the function instruction.
     @__call__.register(collections.abc.Callable)
     def _(self, function, *args, **kwargs):
-        if self._should_unpack:
-            if isinstance(self.end, collections.abc.Mapping):
-                self.end = function(**self.end)
-            elif isinstance(self.end, collections.abc.Sequence):
-                self.end = function(*self.end)
-            else:
-                self.end = function(self.end)
-            self._should_unpack = False
-            return self
-
         has_ans_constant = False
         if ANS in args:
             has_ans_constant = True
@@ -154,7 +145,7 @@ class Link:
             self.end = function(self.end, *args, **kwargs)
         return self
 
-    # Consumes the generator instruction.
+    # Creates a Generator with the last answer as iterable.
     @__call__.register(collections.abc.Generator)
     def _(self, generator, *args, **kwargs):
         if args or kwargs:
@@ -176,12 +167,21 @@ class Link:
             raise ValueError(description % class_name)
         return self
 
-    # Set the unpack flag to true
+    # The next call of function will unpack the last answer
     @__call__.register(_Unpack)
     def _(self, obj):
-        self._should_unpack = True
-        return self
+        def unpacker(function, *args, **kwargs):
+            """Unpack the last answer."""
+            if isinstance(self.end, collections.abc.Mapping):
+                self.end = function(**self.end)
+            elif isinstance(self.end, collections.abc.Sequence):
+                self.end = function(*self.end)
+            else:
+                self.end = function(self.end)
+            return self
+        return unpacker
 
+    # lookup the property of the last answer
     def __getattr__(self, attribute):
         method = getattr(self.end, attribute)
         def wrapper(*args, **kwargs):

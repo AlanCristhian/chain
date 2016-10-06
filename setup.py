@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name="chain",
-    version="0.1.6",
+    version="0.1.7",
     py_modules=["chain"],
     dependency_links=['git+https://github.com/AlanCristhian/name.git'],
     zip_safe=True,
