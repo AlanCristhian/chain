@@ -118,7 +118,6 @@ class Link:
     """
     def __init__(self, obj):
         self.end = obj
-        self._attributes = dir(self)
 
     # Raises an error if the instruction is not a callable or generator.
     @_single_dispatch_method
