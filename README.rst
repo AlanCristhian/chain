@@ -22,8 +22,8 @@ Installation
 
  ::
 
-  $ pip install git+https://github.com/AlanCristhian/name.git
-  $ pip install git+https://github.com/AlanCristhian/chain.git
+    $ pip install git+https://github.com/AlanCristhian/name.git
+    $ pip install git+https://github.com/AlanCristhian/chain.git
 
 --------
 Tutorial
@@ -42,7 +42,7 @@ Executes a function with the given object: ::
 The ``given`` function calls the *lambda function* with ``1`` as argument. The
 ``.end`` property returns the result of the execution.
 
-You can compose many functions by successive calls: ::
+You can compose multiple functions by successive calls: ::
 
     >>> (given([1.5, 2.5, 3.9])
     ...     (max)
@@ -73,7 +73,7 @@ passed argument as second. E.g. ::
     30
 
 The *lambda function* assign ``10`` value to ``x`` and ``20`` to ``y``. You can
-do the same with as many arguments as you want: ::
+do the same with as multiple arguments as you want: ::
 
     >>> add_3 = lambda x, y, z: x + y + z
     >>> given(10)(add_3, 20, 30).end
@@ -94,7 +94,7 @@ constant: ::
 The ``ANS`` constant is like the ``ans`` key in scientific calculators. They
 stores the output of the previous operation.
 
-You can use the ``ANS`` constant as many times as you want: ::
+You can use the ``ANS`` constant as multiple times as you want: ::
 
     >>> given('o')(lambda x, y, z: x + y + z, ANS, ANS, ANS).end
     'ooo'
@@ -161,6 +161,14 @@ module. ::
     ... .end)
     ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 
+Reuse the methods of the given object
+=====================================
+
+You can use the methods in the given object: ::
+
+    >>> given("abc").upper().end
+    'ABC'
+
 Reuse successive calls object
 =============================
 
@@ -176,8 +184,8 @@ just pass the ``...`` constant as argument of the ``given`` function: ::
     >>> add_3_to_even([1, 2, 3, 4, 5, 6])
     [5, 7, 9]
 
-Handle many objects with the nmspc class
-========================================
+Handle multiple objects with the nmspc class
+============================================
 
 Sometimes you want to pass more than one argument to the next function. In that
 cases you can use a list and acces to each object by index: ::
@@ -219,6 +227,39 @@ The same problem can be solved with the ``UNPACK`` constant: ::
     >>> sum_list
     6
 
+Method cascading
+================
+
+In november of 2013 Steven D'Aprano was
+`created a recipe <http://code.activestate.com/recipes/578770-method-chaining/>`_
+to allow method cascading. Method cascading is an apy which allows multiple
+methods to be called on the same object.
+
+For example, supose that you want to call multiple methods of the same object like: ::
+
+    items = []
+
+    items.append(2)
+    items.append(1)
+    items.reverse()
+    items.append(3)
+
+    assert items == [1, 2, 3]
+
+The chain ``chain`` have the ``Cascade`` class that turns any object into
+one with methods that can be chained. ::
+
+    from chain import Cascade
+
+    items = (Cascade([])
+        .append(2)
+        .append(1)
+        .reverse()
+        .append(3)
+    .end)
+
+    assert items == [1, 2, 3]
+
 -----------------
 API Documentation
 -----------------
@@ -234,7 +275,7 @@ constant. ::
     <class 'chain.Instruction' at 0x11672c8>
 
 function given(obj) -> Link
----------------------------
+===========================
 
 Returns a ``Link`` instance that implement the successive calls pattern. ::
 
@@ -243,7 +284,7 @@ Returns a ``Link`` instance that implement the successive calls pattern. ::
     <Link object at 0x7fe2ab0b29d8>
 
 class Link(instruction, \*args, \*\*kwargs)
--------------------------------------------
+===========================================
 
 Implements the successive call pattern. Allways returns itself. ::
 
@@ -254,7 +295,7 @@ Implements the successive call pattern. Allways returns itself. ::
     True
 
 property Link.end
------------------
+=================
 
 Stores the result of the execution. ::
 
@@ -265,7 +306,7 @@ Stores the result of the execution. ::
     ['D', 'C', 'B', 'A']
 
 class Instruction(instruction)
-------------------------------
+==============================
 
 Stores a list of operations that will be performed with an object. ::
 
@@ -281,7 +322,7 @@ The ``Instruction`` callable allways returns itself. ::
     True
 
 property Instruction.end
-------------------------
+========================
 
 Store the function created with ``Instruction``. ::
 
@@ -293,7 +334,7 @@ Store the function created with ``Instruction``. ::
     9
 
 constant ANS
-------------
+============
 
 This constant should be used to collect the output of the previous function or
 store the previous generator defined in the chain. See the tutorial for more
@@ -306,7 +347,7 @@ Indicates that the next funciton in the chain should unpack the result of the
 previous function in the chain.
 
 class nmspc(\*\*kwargs)
------------------------
+=======================
 
 A simple attribute-based namespace. ::
 
@@ -320,3 +361,14 @@ A simple attribute-based namespace. ::
     22
     >>> x.c
     333
+
+class Cascade(obj)
+==================
+
+An adapter class which turns any object into one with methods that can be
+chained. ::
+
+    >>> from chain import Cascade
+    >>> result = Cascade([]).append(2).append(1).reverse().append(3).end
+    >>> result
+    [1, 2, 3]

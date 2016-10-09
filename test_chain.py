@@ -3,7 +3,7 @@ from itertools import product
 from operator import add
 
 
-from chain import given, ANS, Instruction, UNPACK
+from chain import given, ANS, Instruction, UNPACK, nmspc, Cascade, Map
 
 
 class ProtocolSuite(unittest.TestCase):
@@ -157,6 +157,30 @@ class MethodBindingSuite(unittest.TestCase):
         message = "'int' object is not callable"
         with self.assertRaisesRegex(TypeError, message):
             given(1).imag()
+
+
+class NmspcSuite(unittest.TestCase):
+    def test_getattr(self):
+        n = nmspc(a=1)
+        self.assertEqual(n.a, 1)
+
+    def test_repr(self):
+        expected = "nmspc(a=111, b=222, c=333)"
+        obtained = repr(nmspc(a=111, b=222, c=333))
+        self.assertEqual(obtained, expected)
+
+
+class CascadeSuite(unittest.TestCase):
+    def test_single_cascade(self):
+        result = Cascade([]).append(2).append(1).reverse().append(3).end
+        self.assertEqual(result, [1, 2, 3])
+
+
+class MapSuite(unittest.TestCase):
+    def test_Map(self):
+        obj = []
+        Map(obj.append)(1)(2)(3)(4).end
+        self.assertEqual(obj, [1, 2, 3, 4])
 
 
 if __name__ == '__main__':

@@ -38,7 +38,7 @@ Executes a function with the given object:
 The `given` function calls the *lambda function* with `1` as argument. The
 `.end` property returns the result of the execution.
 
-You can compose many functions by successive calls:
+You can compose multiple functions by successive calls:
 
 ```python
 >>> (given([1.5, 2.5, 3.9])
@@ -74,7 +74,7 @@ passed argument as second. E.g
 ```
 
 The *lambda function* assign `10` value to `x` and `20` to `y`. You can
-do the same with as many arguments as you want:
+do the same with as multiple arguments as you want:
 
 ```python
 >>> add_3 = lambda x, y, z: x + y + z
@@ -97,7 +97,7 @@ returned object as second, third or any order? You can use the `ANS` constant:
 The `ANS` constant is like the ```ans``` key in scientific calculators. They
 stores the output of the previous operation.
 
-You can use the `ANS` constant as many times as you want:
+You can use the `ANS` constant as multiple times as you want:
 
 ```python
 >>> given('o')(lambda x, y, z: x + y + z, ANS, ANS, ANS).end
@@ -203,7 +203,7 @@ just pass the `...` constant as argument of the `given` function:
 [5, 7, 9]
 ```
 
-### Handle many objects with the nmspc class
+### Handle multiple objects with the nmspc class
 
 Sometimes you want to pass more than one argument to the next function. In that
 cases you can use a list and acces to each object by index:
@@ -250,6 +250,42 @@ The same problem can be solved with the `UNPACK` constant:
 ... .end)
 >>> sum_list
 6
+```
+
+### Method cascading
+
+In november of 2013 Steven D'Aprano was
+[created a recipe](http://code.activestate.com/recipes/578770-method-chaining/)
+to allow method cascading. Method cascading is an apy which allows multiple
+methods to be called on the same object.
+
+For example, supose that you want to call multiple methods of the same object like: ::
+
+```python
+items = []
+
+items.append(2)
+items.append(1)
+items.reverse()
+items.append(3)
+
+assert items == [1, 2, 3]
+```
+
+The chain ``chain`` have the ``Cascade`` class that turns any object into
+one with methods that can be chained.
+
+```python
+from chain import Cascade
+
+items = (Cascade([])
+    .append(2)
+    .append(1)
+    .reverse()
+    .append(3)
+.end)
+
+assert items == [1, 2, 3]
 ```
 
 ## API Documentation
@@ -356,4 +392,16 @@ nmspc(a=1, b=22, c=333)
 22
 >>> x.c
 333
+```
+
+### class Cascade(obj)
+
+An adapter class which turns any object into one with methods that can be
+chained. ::
+
+```python
+>>> from chain import Cascade
+>>> result = Cascade([]).append(2).append(1).reverse().append(3).end
+>>> result
+[1, 2, 3]
 ```

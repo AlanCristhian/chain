@@ -14,6 +14,7 @@ lookups the '.end' property that stores the result of the execution.
 
 
 import collections.abc
+import collections
 import dis
 import functools
 import types
@@ -22,7 +23,7 @@ import name
 
 
 __all__ = ["ANS", "Link", "given", "Function", "Instruction", "nmspc",
-           "UNPACK"]
+           "UNPACK", "Cascade", "Map"]
 
 
 # In CPython, all generator expressions stores the iterable of the first
@@ -88,7 +89,6 @@ class _Protocol(name.AutoName):
 class _LastAnswer(_Protocol):
     """This constant will be used to collect the output of the previous
     function or store the previous generator defined in the chain.
-
     """
     def __iter__(self):
 
@@ -114,7 +114,6 @@ UNPACK = _Unpack()
 class Link:
     """If `instruction` is a Callable, call them with `args` and
     `kwargs`. Store `instruction` in `ANS` if it is a Generator.
-
     """
     def __init__(self, obj):
         self.end = obj
@@ -200,7 +199,6 @@ def given(obj):
 def _(obj):
     """Return a class that creates function using
     the successive function call pattern.
-
     """
     return Instruction
 
@@ -235,7 +233,6 @@ class Instruction:
     <function operation at 0x7f83828a508>
     >>> operation(1)
     9
-
     """
     def __init__(self, instruction, *args, **kwargs):
         self._stack = [(instruction, args, kwargs)]
@@ -251,7 +248,7 @@ class Instruction:
         return Function(self._stack)
 
 
-class nmspc(types.SimpleNamespace):
+class nmspc(collections.UserDict):
     """A simple attribute-based namespace.
     >>> from chain import nmspc
     >>> n = nmspc(a=1, b=22, c=333)
@@ -264,4 +261,57 @@ class nmspc(types.SimpleNamespace):
     >>> n.c
     333
 
+    This object is a subclass of the dict type.
+
+    >>> isinstance(nmspc, dict)
+    True
     """
+    def __getattr__(self, attribute):
+        return self[attribute]
+
+    def __dir__(self):
+        return list(self.keys())
+
+    def __repr__(self):
+        elements = ", ".join("%s=%r" % (key, value)
+                             for key, value in self.items())
+        return "nmspc(%s)" % elements
+
+
+class Cascade:
+    """ An adapter class which turns any object
+    into one with methods that can be chained.
+
+    >>> from chain import Cascade
+    >>> result = Cascade([]).append(2).append(1).reverse().append(3).end
+    >>> result
+    [1, 2, 3]
+    """
+    def __init__(self, obj):
+        self.end = obj
+
+    def __getattr__(self, name):
+        attr = getattr(self.end, name)
+        if callable(attr):
+            def selfie(*args, **kwargs):
+                # Call the method just for side-effects, return self.
+                attr(*args, **kwargs)
+                return self
+            return selfie
+        else:
+            return attr
+
+
+class Map:
+    def __init__(self, function):
+        self._function = function
+        self._arguments = []
+
+    def __call__(self, *args, **kwargs):
+        self._arguments.append([args, kwargs])
+        return self
+
+    @property
+    def end(self):
+        for args, kwargs in self._arguments:
+            self._function(*args, **kwargs)
