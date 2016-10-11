@@ -12,7 +12,6 @@ to uppercase. Then calls the 'list' function whit the generator. Finally,
 lookups the '.end' property that stores the result of the execution.
 """
 
-
 import collections.abc
 import collections
 import dis
@@ -22,8 +21,8 @@ import types
 import name
 
 
-__all__ = ["ANS", "Link", "given", "Function", "Instruction", "nmspc",
-           "UNPACK", "Cascade", "Map"]
+__all__ = ["ANS", "Link", "given", "Function", "Instruction", "Cascade",
+           "MapCalls", "unpack"]
 
 
 # In CPython, all generator expressions stores the iterable of the first
@@ -79,14 +78,8 @@ def _single_dispatch_method(method):
     return wrapper
 
 
-# A base class for all constants of this module
-class _Protocol(name.AutoName):
-    def __repr__(self):
-        return "<protocol %s at %#02x>" % (self.__assigned_name__, hash(self))
-
-
 # Implements the minimun protocol to have an iterable.
-class _LastAnswer(_Protocol):
+class _LastAnswer:
     """This constant will be used to collect the output of the previous
     function or store the previous generator defined in the chain.
     """
@@ -98,17 +91,11 @@ class _LastAnswer(_Protocol):
     def __next__(self):
         pass
 
+    def __repr__(self):
+        return "<protocol ANS at %#02x>" % hash(self)
+
 
 ANS = _LastAnswer()
-
-
-class _Unpack(_Protocol):
-    """ Indicates that the next funciton in the chain should
-    unpack the result of the previous function in the chain.
-    """
-
-
-UNPACK = _Unpack()
 
 
 class Link:
@@ -164,20 +151,6 @@ class Link:
             class_name = old_locals[".0"].__class__.__name__
             raise ValueError(description % class_name)
         return self
-
-    # The next call of function will unpack the last answer
-    @__call__.register(_Unpack)
-    def _(self, obj):
-        def unpacker(function, *args, **kwargs):
-            """Unpack the last answer."""
-            if isinstance(self.end, collections.abc.Mapping):
-                self.end = function(**self.end)
-            elif isinstance(self.end, collections.abc.Sequence):
-                self.end = function(*self.end)
-            else:
-                self.end = function(self.end)
-            return self
-        return unpacker
 
     # lookup the property of the last answer
     def __getattr__(self, attribute):
@@ -248,36 +221,6 @@ class Instruction:
         return Function(self._stack)
 
 
-class nmspc(collections.UserDict):
-    """A simple attribute-based namespace.
-    >>> from chain import nmspc
-    >>> n = nmspc(a=1, b=22, c=333)
-    >>> n
-    nmspc(a=111, b=222, c=333)
-    >>> n.a
-    111
-    >>> n.b
-    222
-    >>> n.c
-    333
-
-    This object is a subclass of the dict type.
-
-    >>> isinstance(nmspc, dict)
-    True
-    """
-    def __getattr__(self, attribute):
-        return self[attribute]
-
-    def __dir__(self):
-        return list(self.keys())
-
-    def __repr__(self):
-        elements = ", ".join("%s=%r" % (key, value)
-                             for key, value in self.items())
-        return "nmspc(%s)" % elements
-
-
 class Cascade:
     """ An adapter class which turns any object
     into one with methods that can be chained.
@@ -287,6 +230,7 @@ class Cascade:
     >>> result
     [1, 2, 3]
     """
+
     def __init__(self, obj):
         self.end = obj
 
@@ -302,16 +246,31 @@ class Cascade:
             return attr
 
 
-class Map:
+class MapCalls:
     def __init__(self, function):
         self._function = function
-        self._arguments = []
 
     def __call__(self, *args, **kwargs):
-        self._arguments.append([args, kwargs])
+        self._function(*args, **kwargs)
         return self
 
-    @property
-    def end(self):
-        for args, kwargs in self._arguments:
-            self._function(*args, **kwargs)
+
+def unpack(obj, function):
+    """Call the function with the upacket
+    object and return their result.
+
+    >>> add = lambda a, b: a + b
+
+    >>> args = (1, 2)
+    >>> assert unpack(args, add) == add(*args)  # 3
+
+    >>> kwargs = dict(a=1, b=2)
+    >>> assert unpack(kwargs, add) == add(**kwargs)  # 3
+    """
+
+    if isinstance(obj, collections.abc.Mapping):
+        return function(**obj)
+    elif isinstance(obj, collections.abc.Sequence):
+        return function(*obj)
+    else:
+        return function(obj)

@@ -184,8 +184,8 @@ just pass the ``...`` constant as argument of the ``given`` function: ::
     >>> add_3_to_even([1, 2, 3, 4, 5, 6])
     [5, 7, 9]
 
-Handle multiple objects with the nmspc class
-============================================
+Handle multiple returned objects with the ``unpack`` function
+=============================================================
 
 Sometimes you want to pass more than one argument to the next function. In that
 cases you can use a list and acces to each object by index: ::
@@ -198,31 +198,15 @@ cases you can use a list and acces to each object by index: ::
 
 Or you can use a dict. ::
 
-    >>> from chain import given, ANS
-    >>> (given({'a': 1, 'b': 2, 'c': 3})
+    >>> (given(dict(a=1, b=2, c=3))
     ...     (lambda x: x['a'] + x['b'] + x['c'])
     ... .end)
     >>> 6
 
-Bot ways looks unintelligible. For this situation you can use the ``nmspc``
-class that is a tiny wrapper of the ``types.SimpleNamespace`` class of the
-standar library. ::
+The same problem can be solved with the ``unpack`` function: ::
 
-    >>> from chain import given, ANS, nmspc
-    >>> (given(nmspc(a=1, b=2, c=3))
-    ...     (lambda x: x.a + x.b + x.c)
-    ... .end)
-    >>> 6
-
-Unpack the last answer
-======================
-
-The same problem can be solved with the ``UNPACK`` constant: ::
-
-    >>> from chain import given, UNPACK
     >>> sum_list = (given([1, 2, 3])
-    ...     (UNPACK)
-    ...     (lambda x, y, z: x + y + z)
+    ...     (unpack, lambda a, b, c: a + b + c)
     ... .end)
     >>> sum_list
     6
@@ -283,6 +267,21 @@ Returns a ``Link`` instance that implement the successive calls pattern. ::
     >>> link
     <Link object at 0x7fe2ab0b29d8>
 
+function unpack(obj: Any, function) -> function(obj)
+====================================================
+function unpack(obj: Sequence, function) -> function(\*obj)
+===========================================================
+function unpack(obj: Mapping, function) -> function(\*\*obj)
+============================================================
+
+Call the function with the upacket object and return their result.::
+
+    >>> add = lambda a, b: a + b
+    >>> args = (1, 2)
+    >>> assert unpack(args, add) == add(*args)  # 3
+    >>> kwargs = dict(a=1, b=2)
+    >>> assert unpack(kwargs, add) == add(**kwargs)  # 3
+
 class Link(instruction, \*args, \*\*kwargs)
 ===========================================
 
@@ -339,28 +338,6 @@ constant ANS
 This constant should be used to collect the output of the previous function or
 store the previous generator defined in the chain. See the tutorial for more
 info.
-
-constant UNPACK
----------------
-
-Indicates that the next funciton in the chain should unpack the result of the
-previous function in the chain.
-
-class nmspc(\*\*kwargs)
-=======================
-
-A simple attribute-based namespace. ::
-
-    >>> from chain import nmspc
-    >>> x = nmspc(a=1, b=22, c=333)
-    >>> x
-    nmspc(a=1, b=22, c=333)
-    >>> x.a
-    1
-    >>> x.b
-    22
-    >>> x.c
-    333
 
 class Cascade(obj)
 ==================

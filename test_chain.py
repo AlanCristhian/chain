@@ -3,17 +3,13 @@ from itertools import product
 from operator import add
 
 
-from chain import given, ANS, Instruction, UNPACK, nmspc, Cascade, Map
+from chain import (given, ANS, Instruction, Cascade, MapCalls, unpack)
 
 
-class ProtocolSuite(unittest.TestCase):
+class ANSSuite(unittest.TestCase):
     def test_ANS_repr(self):
         self.assertTrue(repr(ANS).startswith("<protocol ANS at "))
         self.assertTrue(repr(ANS).endswith(">"))
-
-    def test_UNPACK_repr(self):
-        self.assertTrue(repr(UNPACK).startswith("<protocol UNPACK at "))
-        self.assertTrue(repr(UNPACK).endswith(">"))
 
 
 class GivenSuite(unittest.TestCase):
@@ -108,29 +104,25 @@ class InstructionSuite(unittest.TestCase):
 class UnpackSuite(unittest.TestCase):
     def test_list_unpack(self):
         vector = (given([1, 2, 3])
-            (UNPACK)
-            (lambda x, y, z: (x, y, z))
+            (unpack, lambda x, y, z: (x, y, z))
         .end)
         self.assertEqual(vector, (1, 2, 3))
 
     def test_dict_unpack(self):
         vector = (given({"x": 1, "y": 2, "z": 3})
-            (UNPACK)
-            (lambda x, y, z: (x, y, z))
+            (unpack, lambda x, y, z: (x, y, z))
         .end)
         self.assertEqual(vector, (1, 2, 3))
 
     def test_single_argument_unpack(self):
         one = (given(1)
-            (UNPACK)
-            (lambda x: x)
+            (unpack, lambda x: x)
         .end)
         self.assertEqual(one, 1)
 
     def test_unpack_false(self):
         vector = (given([1, 2])
-            (UNPACK)
-            (lambda x, y: [x, y])
+            (unpack, lambda x, y: [x, y])
             (lambda x: x*2)
         .end)
         self.assertEqual(vector, [1, 2, 1, 2])
@@ -159,27 +151,16 @@ class MethodBindingSuite(unittest.TestCase):
             given(1).imag()
 
 
-class NmspcSuite(unittest.TestCase):
-    def test_getattr(self):
-        n = nmspc(a=1)
-        self.assertEqual(n.a, 1)
-
-    def test_repr(self):
-        expected = "nmspc(a=111, b=222, c=333)"
-        obtained = repr(nmspc(a=111, b=222, c=333))
-        self.assertEqual(obtained, expected)
-
-
 class CascadeSuite(unittest.TestCase):
     def test_single_cascade(self):
         result = Cascade([]).append(2).append(1).reverse().append(3).end
         self.assertEqual(result, [1, 2, 3])
 
 
-class MapSuite(unittest.TestCase):
-    def test_Map(self):
+class MapCallsSuite(unittest.TestCase):
+    def test_MapCalls(self):
         obj = []
-        Map(obj.append)(1)(2)(3)(4).end
+        MapCalls(obj.append)(1)(2)(3)(4)
         self.assertEqual(obj, [1, 2, 3, 4])
 
 
