@@ -12,20 +12,38 @@ analysis by *successive function calls* and *successive generator*
 
 The `reversed` function runs with `"abcd"` as argument. Then the generator
 expression iterates over the `ANS` constant. `ANS` stores the result returned
-for `reversed`. At next, the generator converts each character in the string
-to uppercase. Then calls the `list` function whit the generator. Finally,
-lookups the `.end` property that stores the result of the execution.
+for `reversed`. At next, the generator turns each character in the string
+to uppercase. Then call the `list` function whit the generator. Finally,
+lookup the `.end` property that stores the result of the execution.
 
-## Installation
+## Table Of Contents
+
+- [Installation](#installation)
+- [Tutorial](#tutorial)
+    - [Successive Function Calls](#successive-calls)
+    - [Call Functions With Multiples Arguments](#many-arguments)
+    - [The ANS Constant](#ans-constant)
+    - [Successive Generator Consumption](#generator-consumption)
+    - [Reuse The Methods Of The Returned Object](#reuse-methods)
+    - [Handle Multiples Returned Objects](#return-multiple)
+    - [Method cascading](#method-cascading)
+- [API Documentation](#api)
+    - [function given(obj) -> Link](#given-obj)
+    - [function unpack(obj, function)](#unpack)
+    - [class Link(instruction, \*args, \*\*kwargs)](#link)
+    - [property Link.end](#link-end)
+    - [constant ANS](#ans)
+    - [class Cascade(obj)](#cascade)
+
+## Installation <a name="installation"></a>
 
 ```shell
-$ pip install git+https://github.com/AlanCristhian/name.git
 $ pip install git+https://github.com/AlanCristhian/chain.git
 ```
 
-## Tutorial
+## Tutorial <a name="tutorial"></a>
 
-### Successive Function Calls
+### Successive Function Calls <a name="successive-calls"></a>
 
 Executes a function with the given object:
 
@@ -35,7 +53,7 @@ Executes a function with the given object:
 3
 ```
 
-The `given` function calls the *lambda function* with `1` as argument. The
+The `given` function call the *lambda function* with `1` as argument. The
 `.end` property returns the result of the execution.
 
 You can compose multiple functions by successive calls:
@@ -60,12 +78,12 @@ precedent function as argument. The below construction is equivalent to.
 6
 ```
 
-### Use functions with more than one argument
+### Call Functions With Multiples Arguments <a name="many-arguments"></a>
 
-You can pass arguments to each function. The first argument of the succesive
-call should be a *Callable*. The *Callable* passed as argument
-is executed whit the output of the previous call as first argument and the
-passed argument as second. E.g
+You can pass multiples arguments to each function. The first argument of the
+succesive call should be a *Callable*. The *Callable* passed as argument
+is executed whit the output of the previous call as first argument, and the
+passed argument as second. E.g.:
 
 ```python
 >>> add = lambda x, y: x + y
@@ -74,19 +92,19 @@ passed argument as second. E.g
 ```
 
 The *lambda function* assign `10` value to `x` and `20` to `y`. You can
-do the same with as multiple arguments as you want:
+do the same with as many arguments as you want:
 
 ```python
->>> add_3 = lambda x, y, z: x + y + z
->>> given(10)(add_3, 20, 30).end
+>>> add_3_ints = lambda x, y, z: x + y + z
+>>> given(10)(add_3_ints, 20, 30).end
 60
 ```
 
-### The `ANS` constant
+### The `ANS` Constant <a name="ans-constant"></a>
 
 In all previous examples the *lambda function* is executed with the object
-returned by the previous call as firs argument. What if you want to pass the
-returned object as second, third or any order? You can use the `ANS` constant:
+returned by the previous call as first argument. What if you want to pass the
+returned object as second, third, or any order? You can use the `ANS` constant:
 
 ```python
 >>> from chain import given, ANS
@@ -113,7 +131,7 @@ You can use the `ANS` constant as multiple times as you want:
 'xyz'
 ```
 
-### Successive generator consumption
+### Successive Generator Consumption <a name="generator-consumption"></a>
 
 If you pass a *generator expression* as unique argument, you can consume
 those *generators* successively.
@@ -127,7 +145,7 @@ those *generators* successively.
 [6, 12, 18]
 ```
 
-The `given` function can only consume those generators that iterate over the
+The `given` function can only consume those generators that iterates over the
 `ANS` constant:
 
 ```python
@@ -135,7 +153,7 @@ The `given` function can only consume those generators that iterate over the
 ValueError: Can not iterate over 'tuple_iterator', 'ANS' constant only.
 ```
 
-What if you want to do some like:
+What if you want to do some like?:
 
 ```python
 >>> (given("abc")
@@ -178,32 +196,26 @@ To do that you should use the `product` function of the `itertools` module.
 ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 ```
 
-### Reuse the methods of the given object
+### Reuse The Methods Of The Returned Object <a name="reuse-methods"></a>
 
-You can use the methods in the given object:
-
-```python
->>> given("abc").upper().end
-'ABC'
-```
-
-### Reuse successive calls object
-
-In case that you want to reutilize a set of operations over an generic object,
-just pass the `...` constant as argument of the `given` function:
+You can lookup and call the methods of the given and returned object:
 
 ```python
->>> from chain import given, ANS
->>> add_3_to_even = (given(...)
-...     (n for n in ANS if n%2 == 0)
-...     (n + 3 for n in ANS)
-...     (list)
-... .end)
->>> add_3_to_even([1, 2, 3, 4, 5, 6])
-[5, 7, 9]
+char = (given("abc")
+        .upper()  # 1
+        (list)    # 2
+        .pop()    # 3
+       ).end
+
+assert char == 'A'
 ```
 
-### Handle multiple returned objects with the `unpack` function
+1. Call the `upper` method of `'abc'`. It give `'ABC'`.
+2. Executes the `list` built-in function with `'ABC'`. It give
+   `['A', 'B', 'C']`.
+3. Call the `pop` method of the list. Returns `'A'`.
+
+### Handle Multiples Returned Objects <a name="return-multiple"></a>
 
 Sometimes you want to pass more than one argument to the next function. In that
 cases you can use a list and acces to each object by index:
@@ -228,6 +240,7 @@ Or you can use a dict.
 The same problem can be solved with the `unpack` function:
 
 ```python
+>>> from chain import given, unpack
 >>> sum_list = (given([1, 2, 3])
 ...     (unpack, lambda a, b, c: a + b + c)
 ... .end)
@@ -235,14 +248,14 @@ The same problem can be solved with the `unpack` function:
 6
 ```
 
-### Method cascading
+### Method cascading <a name="method-cascading"></a>
 
 In november of 2013 Steven D'Aprano was
 [created a recipe](http://code.activestate.com/recipes/578770-method-chaining/)
 to allow method cascading. Method cascading is an apy which allows multiple
 methods to be called on the same object.
 
-For example, supose that you want to call multiple methods of the same object like: ::
+For example, supose that you want to call multiple methods of the same object like:
 
 ```python
 items = []
@@ -261,43 +274,20 @@ one with methods that can be chained.
 ```python
 from chain import Cascade
 
-items = (Cascade([])
+items = (
+    Cascade([])
     .append(2)
     .append(1)
     .reverse()
     .append(3)
-.end)
+).end
 
 assert items == [1, 2, 3]
 ```
 
-## API Documentation
+## API Documentation <a name="api"></a>
 
-### function given(obj=...) -> Instruction
-
-Returns the `Instruction` *class* if the `obj` argument is the `...` constant.
-
-```python
->>> from operator import add, mul
->>> given(...)
-<class 'chain.Instruction' at 0x11672c8>
-```
-
-### function unpack(obj: Any, function) -> function(obj)
-### function unpack(obj: Sequence, function) -> function(\*obj)
-### function unpack(obj: Mapping, function) -> function(\*\*obj)
-
-Call the function with the upacket object and return their result.
-
-```python
->>> add = lambda a, b: a + b
->>> args = (1, 2)
->>> assert unpack(args, add) == add(*args)  # 3
->>> kwargs = dict(a=1, b=2)
->>> assert unpack(kwargs, add) == add(**kwargs)  # 3
-```
-
-### function given(obj) -> Link
+### function given(obj) -> Link <a name="given-obj"></a>
 
 Returns a `Link` instance that implement the successive calls pattern.
 
@@ -307,72 +297,54 @@ Returns a `Link` instance that implement the successive calls pattern.
 <Link object at 0x7fe2ab0b29d8>
 ```
 
-### class Link(instruction, \*args, \*\*kwargs)
+### function unpack(obj, function) <a name="unpack"></a>
+
+Call the function with the upacket object and returns their result.
+
+```python
+>>> add = lambda a, b: a + b
+
+>>> args = (1, 2)
+>>> assert unpack(args, add) == add(*args)  # 3
+
+>>> kwargs = dict(a=1, b=2)
+>>> assert unpack(kwargs, add) == add(**kwargs)  # 3
+```
+
+### class Link(instruction, \*args, \*\*kwargs) <a name="link"></a>
 
 Implements the successive call pattern. Allways returns itself.
 
 ```python
->>> link = given("abcd")
+>>> link = Link("abcd")
 >>> link(reversed)
 <Link object at 0x7fe2a91b6f28>
 >>> link(list) is link
 True
 ```
 
-### property Link.end
+### attribute Link.end <a name="link-end"></a>
 
 Stores the result of the execution.
 
 ```python
->>> link = given("abcd")(reversed)(list)
+>>> link = Link("abcd")(reversed)(list)
 >>> link
 <Link object at 0x7fe2a91b6f28>
 >>> link.end
 ['D', 'C', 'B', 'A']
 ```
 
-### class Instruction(instruction)
-
-Stores a list of operations that will be performed with an object.
-
-```python
->>> from operator import add, mul
->>> Instruction(add, 2)(mul, 3)
-<Instruction object at 0x7fe2a919c048>
-```
-
-The `Instruction` callable allways returns itself.
-
-```python
->>> from operator import add, mul
->>> instr = Instruction(add, 2)
->>> instr(mul, 3) is instr
-True
-```
-
-### property Instruction.end
-
-Store the function created with `Instruction`.
-
-```python
->>> from operator import add, mul
->>> operation = Instruction(add, 2)(mul, 3).end
->>> operation
-<function operation at 0x7f83828a508>
->>> operation(1)
-9
-```
-
-### constant ANS
+### constant ANS <a name="ans"></a>
 
 This constant should be used to collect the output of the previous function or
 store the previous generator defined in the chain. See the tutorial for more
 info.
 
-### class Cascade(obj)
+### class Cascade(obj) <a name="cascade"></a>
 
 An adapter class which turns any object into one with methods that can be
-chained. ::
+chained.
 
 ```python
 >>> from chain import Cascade

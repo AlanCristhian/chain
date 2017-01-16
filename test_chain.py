@@ -3,13 +3,12 @@ from itertools import product
 from operator import add
 
 
-from chain import (given, ANS, Instruction, Cascade, MapCalls, unpack)
+from chain import given, ANS, unpack, Cascade
 
 
 class ANSSuite(unittest.TestCase):
     def test_ANS_repr(self):
-        self.assertTrue(repr(ANS).startswith("<protocol ANS at "))
-        self.assertTrue(repr(ANS).endswith(">"))
+        self.assertEqual(repr(ANS), "ANS")
 
 
 class GivenSuite(unittest.TestCase):
@@ -89,18 +88,6 @@ class GivenSuite(unittest.TestCase):
             given("abc")((i for i in ANS), 1, 2, z=3).end
 
 
-class InstructionSuite(unittest.TestCase):
-    def test_functions(self):
-        operation = given(...)(add, 2)(add, 3)(add, 4)(add, 5)(add, 6).end
-        self.assertEqual(operation(1), 21)
-
-    def test_function_name(self):
-        operation = given(...)(add, 2).end
-        self.assertEqual(operation.__name__, "operation")
-        self.assertEqual(operation.__qualname__, "chain.Function")
-        self.assertIn("<function operation at ", repr(operation))
-
-
 class UnpackSuite(unittest.TestCase):
     def test_list_unpack(self):
         vector = (given([1, 2, 3])
@@ -157,11 +144,22 @@ class CascadeSuite(unittest.TestCase):
         self.assertEqual(result, [1, 2, 3])
 
 
-class MapCallsSuite(unittest.TestCase):
-    def test_MapCalls(self):
-        obj = []
-        MapCalls(obj.append)(1)(2)(3)(4)
-        self.assertEqual(obj, [1, 2, 3, 4])
+class BugsSuite(unittest.TestCase):
+    def test_pallete_bug(self):
+
+        def rgb_to_hex(color):
+            return '#%02x%02x%02x' % color
+
+        s_c = 5
+        color_count = s_c + 2
+        grays = (
+            given(color_count)
+            (range)
+            (round(255/(s_c + 1)*c) for c in ANS)
+            (rgb_to_hex((b, b, b)) for b in ANS)
+            (list)
+            (reversed)
+        ).end
 
 
 if __name__ == '__main__':

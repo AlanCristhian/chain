@@ -5,42 +5,20 @@ by successive function calls and successive generator consumption. For example:
 >>> given("abcd")(reversed)(c.upper() for c in ANS)(list).end
 ['D', 'C', 'B', 'A']
 
-The 'reversed' function runs with '"abcd"' as argument. Then the generator
+The 'reversed' function runs with "abcd" as argument. Then the generator
 expression iterates over the 'ANS' constant. 'ANS' stores the result returned
-for 'reversed'. At next, the generator converts each character in the string
+for 'reversed'. At next, the generator turns each character in the string
 to uppercase. Then calls the 'list' function whit the generator. Finally,
 lookups the '.end' property that stores the result of the execution.
 """
 
 import collections.abc
-import collections
 import dis
 import functools
 import types
 
-import name
 
-
-__all__ = ["ANS", "Link", "given", "Function", "Instruction", "Cascade",
-           "MapCalls", "unpack"]
-
-
-# In CPython, all generator expressions stores the iterable of the first
-# "for statement" in a local constant called ".0", the "dot zero" constant.
-#
-# This function returns a copy of the `generator` argument and
-# replaces their "dot zero" constant with the `iterable` object.
-def _fix_dot_zero(generator, iterable, old_locals):
-    generator_function = types.FunctionType(
-        generator.gi_code,
-        generator.gi_frame.f_globals,
-        generator.__name__)
-
-    # Creates a new `dict` because `old_locals` is inmutable.
-    new_locals = {**old_locals, ".0": iterable}
-
-    # Creates and returns a new "generator object".
-    return generator_function(**new_locals)
+__all__ = ["ANS", "Link", "given", "unpack", "Cascade"]
 
 
 # Check if the generator have more than one "for statement".
@@ -78,30 +56,44 @@ def _single_dispatch_method(method):
     return wrapper
 
 
+# This class will be used to store the output of the
+# previous call if ANS is used in a generator expression.
+#
+# See the NOTE [1]
+class _PreviousGenerator:
+    def __init__(self):
+        self.ANS = None
+
+    def __next__(self):
+        return next(self.ANS)
+
+
 # Implements the minimun protocol to have an iterable.
 class _LastAnswer:
     """This constant will be used to collect the output of the previous
     function or store the previous generator defined in the chain.
     """
+
     def __iter__(self):
-
-        # Returns itself because I want to check identity later.
-        return self
-
-    def __next__(self):
-        pass
+        return _PreviousGenerator()
 
     def __repr__(self):
-        return "<protocol ANS at %#02x>" % hash(self)
+        return "ANS"
 
 
 ANS = _LastAnswer()
 
 
 class Link:
-    """If `instruction` is a Callable, call them with `args` and
-    `kwargs`. Store `instruction` in `ANS` if it is a Generator.
+    """Implements the successive call pattern. Allways returns itself.
+
+    >>> link = Link("abcd")
+    >>> link(reversed)
+    <Link object at 0x7fe2a91b6f28>
+    >>> link(list) is link
+    True
     """
+
     def __init__(self, obj):
         self.end = obj
 
@@ -140,15 +132,22 @@ class Link:
             raise TypeError(description % count)
         if _have_nested_for_statement(generator):
             raise SyntaxError("Multiple for statement are not allowed.")
-        old_locals = generator.gi_frame.f_locals
-        if old_locals[".0"] is ANS:
 
-            # Now the fixed generator is the input
-            # of the next instruction in the chain.
-            self.end = _fix_dot_zero(generator, iter(self.end), old_locals)
+        # NOTE: In CPython, all generator expressions stores the iterable of
+        # the first "for statement" in a local constant called ".0", the
+        # "dot zero" constant.
+        if isinstance(generator.gi_frame.f_locals[".0"], _PreviousGenerator):
+
+            # NOTE [1]: Now the current generator can iterate
+            # over the output of the previous call
+            generator.gi_frame.f_locals[".0"].ANS = iter(self.end)
+
+            # Now the result of this function is the
+            # input of the next instruction in the chain.
+            self.end = generator
         else:
             description = "Can not iterate over '%s', 'ANS' constant only."
-            class_name = old_locals[".0"].__class__.__name__
+            class_name = generator.gi_frame.f_locals[".0"].__class__.__name__
             raise ValueError(description % class_name)
         return self
 
@@ -156,69 +155,23 @@ class Link:
     def __getattr__(self, attribute):
         method = getattr(self.end, attribute)
         def wrapper(*args, **kwargs):
+
+            # Now the result of this function is the
+            # input of the next instruction in the chain.
             self.end = method(*args, **kwargs)
             return self
         functools.update_wrapper(wrapper, method)
         return wrapper
 
 
-@functools.singledispatch
 def given(obj):
-    """Return a object that implement the successive calls pattern."""
+    """Returns a object that implement the successive calls pattern.
+
+    >>> given("abcd")(reversed)(list).end
+    ['d', 'c', 'b', 'a']
+    """
+
     return Link(obj)
-
-
-@given.register(type(Ellipsis))
-def _(obj):
-    """Return a class that creates function using
-    the successive function call pattern.
-    """
-    return Instruction
-
-
-class Function(name.AutoName):
-    """A class that behaves like a function."""
-    def __init__(self, stack):
-        super().__init__()
-        self._stack = stack
-        self.__qualname__ = "chain.Function"
-
-    def __call__(self, obj):
-        operation = Link(obj)
-        for instruction, args, kwargs in self._stack:
-            operation(instruction, *args, **kwargs)
-        return operation.end
-
-    @property
-    def __name__(self):
-        return self.__assigned_name__
-
-    def __repr__(self):
-        return "<function %s at %#02x>" % (self.__assigned_name__, hash(self))
-
-
-class Instruction:
-    """Creates a function using the successive function call pattern.
-
-    >>> from operator import add, mul
-    >>> operation = Instruction(add, 2)(mul, 3).end
-    >>> operation
-    <function operation at 0x7f83828a508>
-    >>> operation(1)
-    9
-    """
-    def __init__(self, instruction, *args, **kwargs):
-        self._stack = [(instruction, args, kwargs)]
-
-    def __call__(self, instruction, *args, **kwargs):
-        """Adds operations to the stack of instructions."""
-        self._stack.append((instruction, args, kwargs))
-        return self
-
-    @property
-    def end(self):
-        """Creates and returns the function."""
-        return Function(self._stack)
 
 
 class Cascade:
@@ -246,15 +199,6 @@ class Cascade:
             return attr
 
 
-class MapCalls:
-    def __init__(self, function):
-        self._function = function
-
-    def __call__(self, *args, **kwargs):
-        self._function(*args, **kwargs)
-        return self
-
-
 def unpack(obj, function):
     """Call the function with the upacket
     object and return their result.
@@ -262,10 +206,10 @@ def unpack(obj, function):
     >>> add = lambda a, b: a + b
 
     >>> args = (1, 2)
-    >>> assert unpack(args, add) == add(*args)  # 3
+    >>> assert unpack(args, add) == add(*args)
 
     >>> kwargs = dict(a=1, b=2)
-    >>> assert unpack(kwargs, add) == add(**kwargs)  # 3
+    >>> assert unpack(kwargs, add) == add(**kwargs)
     """
 
     if isinstance(obj, collections.abc.Mapping):

@@ -12,9 +12,11 @@ analysis by *successive function calls* and *successive generator*
 
 The ``reversed`` function runs with ``"abcd"`` as argument. Then the generator
 expression iterates over the ``ANS`` constant. ``ANS`` stores the result
-returned for ``reversed``. At next, the generator converts each character in
-the string to uppercase. Then calls the ``list`` function whit the generator.
-Finally, lookups the ``.end`` property that stores the result of the execution.
+returned for ``reversed``. At next, the generator turns each character in
+the string to uppercase. Then call the ``list`` function whit the generator.
+Finally, lookup the ``.end`` property that stores the result of the execution.
+
+.. contents:: Table of Contents
 
 ------------
 Installation
@@ -22,13 +24,11 @@ Installation
 
  ::
 
-    $ pip install git+https://github.com/AlanCristhian/name.git
     $ pip install git+https://github.com/AlanCristhian/chain.git
 
 --------
 Tutorial
 --------
-
 
 Successive Function Calls
 =========================
@@ -39,7 +39,7 @@ Executes a function with the given object: ::
     >>> given(1)(lambda x: x + 2).end
     3
 
-The ``given`` function calls the *lambda function* with ``1`` as argument. The
+The ``given`` function call the *lambda function* with ``1`` as argument. The
 ``.end`` property returns the result of the execution.
 
 You can compose multiple functions by successive calls: ::
@@ -60,31 +60,31 @@ precedent function as argument. The below construction is equivalent to. ::
     >>> (lambda x: x + 2)(_)
     6
 
-Use functions with more than one argument
-=========================================
+Call Functions With Multiples Arguments
+=======================================
 
-You can pass arguments to each function. The first argument of the succesive
-call should be a *Callable*. The *Callable* passed as argument
-is executed whit the output of the previous call as first argument and the
-passed argument as second. E.g. ::
+You can pass multiples arguments to each function. The first argument of the
+succesive call should be a *Callable*. The *Callable* passed as argument
+is executed whit the output of the previous call as first argument, and the
+passed argument as second. E.g.: ::
 
     >>> add = lambda x, y: x + y
     >>> given(10)(add, 20).end
     30
 
 The *lambda function* assign ``10`` value to ``x`` and ``20`` to ``y``. You can
-do the same with as multiple arguments as you want: ::
+do the same with as many arguments as you want: ::
 
-    >>> add_3 = lambda x, y, z: x + y + z
-    >>> given(10)(add_3, 20, 30).end
+    >>> add_3_ints = lambda x, y, z: x + y + z
+    >>> given(10)(add_3_ints, 20, 30).end
     60
 
-The ``ANS`` constant
+The ``ANS`` Constant
 ====================
 
 In all previous examples the *lambda function* is executed with the object
-returned by the previous call as firs argument. What if you want to pass the
-returned object as second, third or any order? You can use the ``ANS``
+returned by the previous call as first argument. What if you want to pass the
+returned object as second, third, or any order? You can use the ``ANS``
 constant: ::
 
     >>> from chain import given, ANS
@@ -106,7 +106,7 @@ You can use the ``ANS`` constant as multiple times as you want: ::
     >>> given("c")(lambda x, y, z: x + y + z, x="a", y="b", z=ANS).end
     'xyz'
 
-Successive generator consumption
+Successive Generator Consumption
 ================================
 
 If you pass a *generator expression* as unique argument, you can consume
@@ -119,13 +119,13 @@ those *generators* successively. ::
     ... .end)
     [6, 12, 18]
 
-The ``given`` function can only consume those generators that iterate over the
+The ``given`` function can only consume those generators that iterates over the
 ``ANS`` constant: ::
 
     >>> given("abc")(i for i in (1, 2))(list).end
     ValueError: Can not iterate over 'tuple_iterator', 'ANS' constant only.
 
-What if you want to do some like: ::
+What if you want to do some like?: ::
 
     >>> (given("abc")
     ...     ((i, j) for i, j in enumerate(ANS))
@@ -161,31 +161,26 @@ module. ::
     ... .end)
     ['xa', 'xb', 'xc', 'ya', 'yb', 'yc', 'za', 'zb', 'zc']
 
-Reuse the methods of the given object
-=====================================
+Reuse The Methods Of The Returned Object
+========================================
 
-You can use the methods in the given object: ::
+You can lookup and call the methods of the given and returned object: ::
 
-    >>> given("abc").upper().end
-    'ABC'
+    char = (given("abc")
+            .upper()  # 1
+            (list)    # 2
+            .pop()    # 3
+           ).end
 
-Reuse successive calls object
-=============================
+    assert char == 'A'
 
-In case that you want to reutilize a set of operations over an generic object,
-just pass the ``...`` constant as argument of the ``given`` function: ::
+1. Call the ``upper`` method of ``'abc'``. It give ``'ABC'``.
+2. Executes the ``list`` built-in function with ``'ABC'``. It give
+   ``['A', 'B', 'C']``.
+3. Call the ``pop`` method of the list created in step 2. Returns ``'A'``.
 
-    >>> from chain import given, ANS
-    >>> add_3_to_even = (given(...)
-    ...     (n for n in ANS if n%2 == 0)
-    ...     (n + 3 for n in ANS)
-    ...     (list)
-    ... .end)
-    >>> add_3_to_even([1, 2, 3, 4, 5, 6])
-    [5, 7, 9]
-
-Handle multiple returned objects with the ``unpack`` function
-=============================================================
+Handle Multiples Returned Objects
+=================================
 
 Sometimes you want to pass more than one argument to the next function. In that
 cases you can use a list and acces to each object by index: ::
@@ -205,6 +200,7 @@ Or you can use a dict. ::
 
 The same problem can be solved with the ``unpack`` function: ::
 
+    >>> from chain import given, unpack
     >>> sum_list = (given([1, 2, 3])
     ...     (unpack, lambda a, b, c: a + b + c)
     ... .end)
@@ -235,12 +231,13 @@ one with methods that can be chained. ::
 
     from chain import Cascade
 
-    items = (Cascade([])
+    items = (
+        Cascade([])
         .append(2)
         .append(1)
         .reverse()
         .append(3)
-    .end)
+    ).end
 
     assert items == [1, 2, 3]
 
@@ -248,18 +245,8 @@ one with methods that can be chained. ::
 API Documentation
 -----------------
 
-function given(obj=...) -> Instruction
-======================================
-
-Returns the ``Instruction`` *class* if the ``obj`` argument is the ``...``
-constant. ::
-
-    >>> from operator import add, mul
-    >>> given(...)
-    <class 'chain.Instruction' at 0x11672c8>
-
-function given(obj) -> Link
-===========================
+given(obj) -> Link
+==================
 
 Returns a ``Link`` instance that implement the successive calls pattern. ::
 
@@ -267,18 +254,17 @@ Returns a ``Link`` instance that implement the successive calls pattern. ::
     >>> link
     <Link object at 0x7fe2ab0b29d8>
 
-function unpack(obj: Any, function) -> function(obj)
-====================================================
-function unpack(obj: Sequence, function) -> function(\*obj)
-===========================================================
-function unpack(obj: Mapping, function) -> function(\*\*obj)
-============================================================
 
-Call the function with the upacket object and return their result.::
+function unpack(obj, function)
+==============================
+
+Call the function with the upacket object and returns their result.::
 
     >>> add = lambda a, b: a + b
+
     >>> args = (1, 2)
     >>> assert unpack(args, add) == add(*args)  # 3
+
     >>> kwargs = dict(a=1, b=2)
     >>> assert unpack(kwargs, add) == add(**kwargs)  # 3
 
@@ -287,50 +273,22 @@ class Link(instruction, \*args, \*\*kwargs)
 
 Implements the successive call pattern. Allways returns itself. ::
 
-    >>> link = given("abcd")
+    >>> link = Link("abcd")
     >>> link(reversed)
     <Link object at 0x7fe2a91b6f28>
     >>> link(list) is link
     True
 
-property Link.end
-=================
+attribute Link.end
+==================
 
 Stores the result of the execution. ::
 
-    >>> link = given("abcd")(reversed)(list)
+    >>> link = Link("abcd")(reversed)(list)
     >>> link
     <Link object at 0x7fe2a91b6f28>
     >>> link.end
     ['D', 'C', 'B', 'A']
-
-class Instruction(instruction)
-==============================
-
-Stores a list of operations that will be performed with an object. ::
-
-    >>> from operator import add, mul
-    >>> Instruction(add, 2)(mul, 3)
-    <Instruction object at 0x7fe2a919c048>
-
-The ``Instruction`` callable allways returns itself. ::
-
-    >>> from operator import add, mul
-    >>> instr = Instruction(add, 2)
-    >>> instr(mul, 3) is instr
-    True
-
-property Instruction.end
-========================
-
-Store the function created with ``Instruction``. ::
-
-    >>> from operator import add, mul
-    >>> operation = Instruction(add, 2)(mul, 3).end
-    >>> operation
-    <function operation at 0x7f83828a508>
-    >>> operation(1)
-    9
 
 constant ANS
 ============
